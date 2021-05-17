@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Example</string>
+    <string name="layout_one">Layout one</string>
+    <string name="default_layout">Default Layout</string>
+    <string name="info_button">Product Info</string>
+    <string name="checkout_button">Buy Now</string>
+</resources>
