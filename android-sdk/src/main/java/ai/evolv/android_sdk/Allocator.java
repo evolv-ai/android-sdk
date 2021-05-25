@@ -4,6 +4,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import org.slf4j.Logger;
@@ -20,7 +21,12 @@ class Allocator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Allocator.class);
 
+
     enum AllocationStatus {
+        FETCHING, RETRIEVED, FAILED
+    }
+
+    enum ConfigurationStatus {
         FETCHING, RETRIEVED, FAILED
     }
 
@@ -35,6 +41,7 @@ class Allocator {
     private boolean contaminationSandbagged = false;
 
     private AllocationStatus allocationStatus;
+    private ConfigurationStatus configurationStatus;
 
     Allocator(EvolvConfig config, EvolvParticipant participant) {
         this.executionQueue = config.getExecutionQueue();
@@ -64,8 +71,6 @@ class Allocator {
             String path = String.format("//%s/%s/%s/allocations", config.getDomain(),
                     config.getVersion(),
                     config.getEnvironmentId());
-            String queryString = String.format("uid=%s&sid=%s", participant.getUserId(),
-                    participant.getSessionId());
             URI uri = new URI(config.getHttpScheme(), null, path, "", null);
             URL url = uri.toURL();
             return url.toString();
@@ -130,5 +135,72 @@ class Allocator {
 
     static boolean allocationsNotEmpty(JsonArray allocations) {
         return allocations != null && allocations.size() > 0;
+    }
+
+    ListenableFuture<JsonObject> fetchConfiguration() {
+        ListenableFuture<String> responseFuture = httpClient.get(createConfigurationUrl());
+
+        SettableFuture<JsonObject> configurationFuture = SettableFuture.create();
+
+        responseFuture.addListener(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    JsonParser parser = new JsonParser();
+                    JsonObject configuration = parser.parse(responseFuture.get()).getAsJsonObject();
+
+                    //JsonArray previousAllocations = store.get(participant.getUserId());
+//                    if (allocationsNotEmpty(previousAllocations)) {
+//                        allocations = Allocations.reconcileAllocations(previousAllocations, allocations);
+//                    }
+
+//                    store.put(participant.getUserId(), allocations);
+                    configurationStatus = ConfigurationStatus.RETRIEVED;
+
+                    configurationFuture.set(configuration);
+                    // TODO: 23.05.2021 configuration.json
+//                    executionQueue.executeAllWithValuesFromAllocations(allocations,
+//                            eventEmitter, confirmationSandbagged, contaminationSandbagged);
+                } catch (Exception e) {
+                    LOGGER.warn("There was a failure while retrieving the allocations.", e);
+                    configurationFuture.set(resolveConfigurationFailure());
+                }
+            }
+        }, MoreExecutors.directExecutor());
+
+        return configurationFuture;
+    }
+
+    String createConfigurationUrl() {
+        try {
+            String path = String.format("//%s/%s/%s/%s/configuration.json", config.getDomain(),
+                    config.getVersion(),
+                    config.getEnvironmentId(),
+                    participant.getUserId());
+            URI uri = new URI(config.getHttpScheme(), null, path, "", null);
+            URL url = uri.toURL();
+            return url.toString();
+        } catch (Exception e) {
+            LOGGER.error("There was an issue creating the allocations url.", e);
+            return "";
+        }
+    }
+
+    JsonObject resolveConfigurationFailure() {
+//        JsonArray previousAllocations = store.get(participant.getUserId());
+//        if (allocationsNotEmpty(previousAllocations)) {
+//            LOGGER.debug("Falling back to participant's previous allocation.");
+//            allocationStatus = AllocationStatus.RETRIEVED;
+//
+//            executionQueue.executeAllWithValuesFromAllocations(previousAllocations, eventEmitter,
+//                    confirmationSandbagged, contaminationSandbagged);
+//        } else {
+//            LOGGER.debug("Falling back to the supplied defaults.");
+//            allocationStatus = AllocationStatus.FAILED;
+//            executionQueue.executeAllWithValuesFromDefaults();
+//            previousAllocations = new JsonArray();
+//        }
+//
+        return null;
     }
 }

@@ -86,4 +86,6 @@ public interface EvolvClient {
      */
     <T> T getActiveKeys(String prefix, T defaultValue);
 
+    void initialize(String uid, EvolvContext remoteContext, EvolvContext localContext);
+
 }

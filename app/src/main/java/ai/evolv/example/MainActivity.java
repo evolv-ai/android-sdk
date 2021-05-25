@@ -38,10 +38,13 @@ public class MainActivity extends AppCompatActivity {
 
         // initialize the client with a stored user
         client = EvolvClientFactory.init(config,  EvolvParticipant.builder()
-                .setUserId("79211876_16178796481581112223331").build());
+                //.setUserId("79211876_16178796481581112223331").build()); //"Default layout";"click here"
+                .setUserId("79211876_16178796481581112223332").build()); //"Layout 1";"click here"
+                //.setUserId("79211876_16178796481581112223337").build()); //"Default layout"; "click here now!"
+                //.setUserId("79211876_16178796481581112223339").build()); //"Default layout"; "best button"
 
-//        // initialize the client with a new user
-//        client = AscendClientFactory.init(config);
+        // initialize the client with a new user
+        //client = EvolvClientFactory.init(config);
 
         client.subscribe("next.layout", "Default Layout", layoutOption -> {
             runOnUiThread(() -> {

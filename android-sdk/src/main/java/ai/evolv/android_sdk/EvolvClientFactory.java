@@ -2,6 +2,7 @@ package ai.evolv.android_sdk;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,12 +44,15 @@ public class EvolvClientFactory {
 
         Allocator allocator = new Allocator(config, participant);
 
+        // fetch configuration asynchronously
+        ListenableFuture<JsonObject> futureConfiguration = allocator.fetchConfiguration();
         // fetch and reconcile allocations asynchronously
         ListenableFuture<JsonArray> futureAllocations = allocator.fetchAllocations();
 
         return new EvolvClientImpl(config,
                 new EventEmitter(config, participant, store),
                 futureAllocations,
+                futureConfiguration,
                 allocator,
                 Allocator.allocationsNotEmpty(previousAllocations),
                 participant);
