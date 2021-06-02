@@ -1,5 +1,7 @@
 package ai.evolv.android_sdk;
 
+import android.util.Log;
+
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -7,24 +9,15 @@ import com.google.gson.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.ExecutionException;
+
 import ai.evolv.android_sdk.evolvinterface.EvolvAllocationStore;
 import ai.evolv.android_sdk.evolvinterface.EvolvClient;
+import ai.evolv.android_sdk.evolvinterface.EvolvContext;
 
 public class EvolvClientFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EvolvClientFactory.class);
-
-    /**
-     * Creates instances of the EvolvClient.
-     *
-     * @param config general configurations for the SDK
-     * @return an instance of EvolvClient
-     */
-    public static EvolvClient init(EvolvConfig config) {
-        LOGGER.debug("Initializing Evolv Client.");
-        EvolvParticipant participant = EvolvParticipant.builder().build();
-        return EvolvClientFactory.createClient(config, participant);
-    }
 
     /**
      * Creates instances of the EvolvClient.
@@ -39,22 +32,9 @@ public class EvolvClientFactory {
     }
 
     private static EvolvClient createClient(EvolvConfig config, EvolvParticipant participant) {
-        EvolvAllocationStore store = config.getEvolvAllocationStore();
-        JsonArray previousAllocations = store.get(participant.getUserId());
-
-        Allocator allocator = new Allocator(config, participant);
-
-        // fetch configuration asynchronously
-        ListenableFuture<JsonObject> futureConfiguration = allocator.fetchConfiguration();
-        // fetch and reconcile allocations asynchronously
-        ListenableFuture<JsonArray> futureAllocations = allocator.fetchAllocations();
 
         return new EvolvClientImpl(config,
-                new EventEmitter(config, participant, store),
-                futureAllocations,
-                futureConfiguration,
-                allocator,
-                Allocator.allocationsNotEmpty(previousAllocations),
-                participant);
+                participant,
+                new WaitForIt());
     }
 }

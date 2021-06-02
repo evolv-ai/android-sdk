@@ -23,7 +23,7 @@ class ExecutionQueue {
         this.queue.add(execution);
     }
 
-    void executeAllWithValuesFromAllocations(JsonArray allocations, EventEmitter eventEmitter,
+    void executeAllWithValuesFromAllocations(JsonArray allocations,
                                              boolean confirmationSandbagged,
                                              boolean contaminationSandbagged) {
         while (!queue.isEmpty()) {
@@ -40,13 +40,7 @@ class ExecutionQueue {
             }
         }
 
-        if (confirmationSandbagged) {
-            eventEmitter.confirm(allocations);
-        }
 
-        if (contaminationSandbagged) {
-            eventEmitter.contaminate(allocations);
-        }
     }
 
     void executeAllWithValuesFromDefaults() {

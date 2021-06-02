@@ -6,28 +6,34 @@ import ai.evolv.android_sdk.httpclients.HttpClient;
 public class EvolvConfig {
 
     static final String DEFAULT_HTTP_SCHEME = "https";
-    static final String DEFAULT_DOMAIN = "participants.evolv.ai";
-    static final String DEFAULT_API_VERSION = "v1";
+    static final String PROD_DOMAIN = "participants.evolv.ai";
+    static final String TEST_DOMAIN = "participants-stg.evolv.ai";
+    static final String DEFAULT_DOMAIN = TEST_DOMAIN;
+    static final String DEFAULT_ENDPOINT = "'https://participants.evolv.ai/') + 'v'";
+    static final int DEFAULT_VERSION = 1;
 
     private static final int DEFAULT_ALLOCATION_STORE_SIZE = 1000;
 
     private final String httpScheme;
     private final String domain;
-    private final String version;
+    private final int version;
     private final String environmentId;
-    private final EvolvAllocationStore evolvAllocationStore;
+    private final String endpoint;
     private final HttpClient httpClient;
     private final ExecutionQueue executionQueue;
+    private final boolean autoConfirm = false;
+    private final boolean analytics = true;
+    private final boolean bufferEvents = false;
 
-    private EvolvConfig(String httpScheme, String domain, String version,
+    private EvolvConfig(String httpScheme, String domain, int version,
                         String environmentId,
-                        EvolvAllocationStore evolvAllocationStore,
+                        String endpoint,
                         HttpClient httpClient) {
         this.httpScheme = httpScheme;
         this.domain = domain;
         this.version = version;
         this.environmentId = environmentId;
-        this.evolvAllocationStore = evolvAllocationStore;
+        this.endpoint = endpoint;
         this.httpClient = httpClient;
         this.executionQueue = new ExecutionQueue();
     }
@@ -44,16 +50,12 @@ public class EvolvConfig {
         return domain;
     }
 
-    String getVersion() {
+    int getVersion() {
         return version;
     }
 
     String getEnvironmentId() {
         return environmentId;
-    }
-
-    EvolvAllocationStore getEvolvAllocationStore() {
-        return evolvAllocationStore;
     }
 
     HttpClient getHttpClient() {
@@ -64,13 +66,29 @@ public class EvolvConfig {
         return this.executionQueue;
     }
 
+    public boolean isAutoConfirm() {
+        return autoConfirm;
+    }
+
+    public boolean isAnalytics() {
+        return analytics;
+    }
+
+    public boolean isBufferEvents() {
+        return bufferEvents;
+    }
+
+    public String getEndpoint() {
+        return endpoint;
+    }
+
     public static class Builder {
 
         private int allocationStoreSize = DEFAULT_ALLOCATION_STORE_SIZE;
         private String httpScheme = DEFAULT_HTTP_SCHEME;
         private String domain = DEFAULT_DOMAIN;
-        private String version = DEFAULT_API_VERSION;
-        private EvolvAllocationStore allocationStore;
+        private String endpoint = DEFAULT_ENDPOINT;
+        private int version;
 
         private String environmentId;
         private HttpClient httpClient;
@@ -103,21 +121,11 @@ public class EvolvConfig {
          * @param version representation of the required EvolvParticipant api version
          * @return EvolvClientBuilder class
          */
-        public Builder setVersion(String version) {
+        public Builder setVersion(int version) {
             this.version = version;
             return this;
         }
 
-        /**
-         * Sets up a custom EvolvAllocationStore. Store needs to implement the
-         * EvolvAllocationStore interface.
-         * @param allocationStore a custom built allocation store
-         * @return EvolvClientBuilder class
-         */
-        public Builder setEvolvAllocationStore(EvolvAllocationStore allocationStore) {
-            this.allocationStore = allocationStore;
-            return this;
-        }
 
         /**
          * Tells the SDK to use either http or https.
@@ -144,12 +152,15 @@ public class EvolvConfig {
          * @return an EvolvClientImpl instance
          */
         public EvolvConfig build() {
-            if (allocationStore == null) {
-                allocationStore = new DefaultAllocationStore(allocationStoreSize);
+
+            if(version == 0){
+                version = DEFAULT_VERSION;
             }
 
+            endpoint = DEFAULT_ENDPOINT + version;
+
             return new EvolvConfig(httpScheme, domain, version, environmentId,
-                    allocationStore,
+                    endpoint,
                     httpClient);
         }
 

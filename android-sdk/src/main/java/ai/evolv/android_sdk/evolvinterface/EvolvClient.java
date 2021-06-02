@@ -1,5 +1,9 @@
 package ai.evolv.android_sdk.evolvinterface;
 
+import java.util.Map;
+
+import ai.evolv.android_sdk.exceptions.EvolvKeyError;
+
 public interface EvolvClient {
 
     /**
@@ -37,26 +41,6 @@ public interface EvolvClient {
     <T> void subscribe(String key, T defaultValue, EvolvAction<T> function);
 
     /**
-     * Emits a generic event to be recorded by Evolv.
-     * <p>
-     *     Sends an event to Evolv to be recorded and reported upon. Also records
-     *     a generic score value to be associated with the event.
-     * </p>
-     * @param key the identifier of the event
-     * @param score a score to be associated with the event
-     */
-    void emitEvent(String key, Double score);
-
-    /**
-     * Emits a generic event to be recorded by Evolv.
-     * <p>
-     *     Sends an event to Evolv to be recorded and reported upon.
-     * </p>
-     * @param key the identifier of the event
-     */
-    void emitEvent(String key);
-
-    /**
      * Sends a confirmed event to Evolv.
      * <p>
      *     Method produces a confirmed event which confirms the participant's
@@ -86,6 +70,12 @@ public interface EvolvClient {
      */
     <T> T getActiveKeys(String prefix, T defaultValue);
 
-    void initialize(String uid, EvolvContext remoteContext, EvolvContext localContext);
+    /**
+     * Initializes the client with required context information.
+     * @param uid A globally unique identifier for the current participant.
+     * @param remoteContext A map of data used for evaluating context predicates and analytics.
+     * @param localContext A map of data used only for evaluating context predicates.
+     */
+    void initialize(String uid, Map<String, Object> remoteContext,  Map<String, Object> localContext);
 
 }

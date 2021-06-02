@@ -109,17 +109,16 @@ public class OkHttpClient implements HttpClient {
         return responseFuture;
     }
 
-    public ListenableFuture<String> post(String url, Map<String, String> userAttributes) {
-        return postStringSettableFuture(url, httpClient, userAttributes);
+    public ListenableFuture<String> post(String url, String userId) {
+        return postStringSettableFuture(url, httpClient, userId);
     }
 
     private static SettableFuture<String> postStringSettableFuture(
-            String url, okhttp3.OkHttpClient httpClient, Map<String, String> userAttributes) {
+            String url, okhttp3.OkHttpClient httpClient, String userId) {
         SettableFuture<String> responseFuture = SettableFuture.create();
 
         RequestBody formBody = new FormBody.Builder()
-                .add("uid", Objects.requireNonNull(userAttributes.get("uid")))
-                .add("sid", Objects.requireNonNull(userAttributes.get("sid")))
+                .add("uid", userId)
                 .build();
         Request request = new Request.Builder()
                 .url(url)

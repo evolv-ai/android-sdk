@@ -13,10 +13,13 @@ import com.google.gson.JsonElement;
 
 import java.util.concurrent.TimeUnit;
 
+import ai.evolv.android_sdk.EvolvClientImpl;
+import ai.evolv.android_sdk.evolvinterface.EvolvAction;
 import ai.evolv.android_sdk.evolvinterface.EvolvClient;
 import ai.evolv.android_sdk.EvolvClientFactory;
 import ai.evolv.android_sdk.EvolvConfig;
 import ai.evolv.android_sdk.EvolvParticipant;
+import ai.evolv.android_sdk.evolvinterface.EvolvContext;
 import ai.evolv.android_sdk.httpclients.HttpClient;
 import ai.evolv.android_sdk.httpclients.OkHttpClient;
 
@@ -29,22 +32,21 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        HttpClient httpClient = new OkHttpClient(TimeUnit.MILLISECONDS, 3000);
+        HttpClient httpClient = new OkHttpClient(TimeUnit.MILLISECONDS, 5000);
 
         // build config with custom timeout and custom allocation store
         // set client to use sandbox environment
-        EvolvConfig config = EvolvConfig.builder("8b50696b6c", httpClient)
+        EvolvConfig config = EvolvConfig.builder("e30a43d71c", httpClient)
                 .build();
 
         // initialize the client with a stored user
-        client = EvolvClientFactory.init(config,  EvolvParticipant.builder()
-                //.setUserId("79211876_16178796481581112223331").build()); //"Default layout";"click here"
-                .setUserId("79211876_16178796481581112223332").build()); //"Layout 1";"click here"
-                //.setUserId("79211876_16178796481581112223337").build()); //"Default layout"; "click here now!"
-                //.setUserId("79211876_16178796481581112223339").build()); //"Default layout"; "best button"
-
-        // initialize the client with a new user
-        //client = EvolvClientFactory.init(config);
+        client = EvolvClientFactory.init(
+                config,
+                new EvolvParticipant("79211876_16178796481581112223331"));
+                //UserId"79211876_16178796481581112223331" - //"Default layout";"click here"
+                //UserId("79211876_16178796481581112223332") - //"Layout 1";"click here"
+                //UserId("79211876_16178796481581112223337") - //"Default layout"; "click here now!"
+                //UserId("79211876_16178796481581112223339") - //"Default layout"; "best button"
 
         client.subscribe("next.layout", "Default Layout", layoutOption -> {
             runOnUiThread(() -> {
@@ -62,24 +64,27 @@ public class MainActivity extends AppCompatActivity {
             });
         });
 
-        client.subscribe("home.cta_text", "Default Message", buttonText -> {
-            runOnUiThread(() -> {
-                TextView showCountTextView = findViewById(R.id.homeButton);
-                showCountTextView.setText(buttonText);
-            });
+        client.subscribe("home.cta_text", "Default Message", new EvolvAction<String>() {
+            @Override
+            public void apply(String buttonText) {
+                MainActivity.this.runOnUiThread(() -> {
+                    TextView showCountTextView = MainActivity.this.findViewById(R.id.homeButton);
+                    showCountTextView.setText(buttonText);
+                });
+            }
         });
 
-        //Get the value of a specified key.
-        Log.d("get_log", client.get("home.cta_text", "default key"));
+        EvolvContext evolvContext = ((EvolvClientImpl)client).getEvolvContext();
 
-        //Check all active keys that start with the specified prefix.
-        Log.d("getActiveKeys_log",client.getActiveKeys("", new JsonArray()).toString());
+        evolvContext.set("key.test","test_value",false);
 
-        client.confirm();
+        // TODO: 02.06.2021 allow adding third or more orders of keys to the remote context
+        //evolvContext.set("key.test.test1","test_value",false);
+
+
     }
 
     public void pressHome(View view) {
-        client.emitEvent("conversion");
         Toast convMessage = Toast.makeText(this, "Сlicked",
                 Toast.LENGTH_SHORT);
         convMessage.show();

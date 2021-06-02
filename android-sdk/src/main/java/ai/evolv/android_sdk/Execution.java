@@ -34,21 +34,7 @@ class Execution<T> {
     }
 
     void executeWithAllocation(JsonArray rawAllocations) throws EvolvKeyError {
-        GenericClass<T> cls = new GenericClass(defaultValue.getClass());
-        Allocations allocations = new Allocations(rawAllocations, store);
-        T value = allocations.getValueFromAllocations(key, cls.getMyType(), participant);
 
-        if (value == null) {
-            throw new EvolvKeyError("Got null when retrieving key from allocations.");
-        }
-
-        Set<String> activeExperiments = allocations.getActiveExperiments();
-        if (alreadyExecuted.isEmpty() || !alreadyExecuted.equals(activeExperiments)) {
-            // there was a change to the allocations after reconciliation, apply changes
-            function.apply(value);
-        }
-
-        alreadyExecuted = activeExperiments;
     }
 
     void executeWithDefault() {

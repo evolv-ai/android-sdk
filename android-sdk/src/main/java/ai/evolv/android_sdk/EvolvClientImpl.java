@@ -7,176 +7,119 @@ import com.google.gson.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
+
 import ai.evolv.android_sdk.evolvinterface.EvolvAction;
 import ai.evolv.android_sdk.evolvinterface.EvolvAllocationStore;
 import ai.evolv.android_sdk.evolvinterface.EvolvClient;
+import ai.evolv.android_sdk.evolvinterface.EvolvContext;
+import ai.evolv.android_sdk.evolvinterface.EvolvInvocation;
 import ai.evolv.android_sdk.exceptions.EvolvKeyError;
 import ai.evolv.android_sdk.generics.GenericClass;
 
-class EvolvClientImpl implements EvolvClient {
+import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_INITIALIZED;
+
+public class EvolvClientImpl implements EvolvClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(EvolvClientImpl.class);
 
-    private final EventEmitter eventEmitter;
-    private final ListenableFuture<JsonArray> futureAllocations;
-    private final ListenableFuture<JsonObject> futureConfiguration;
+    private boolean initialized = false;
+    private EvolvContext evolvContext;
+    private EvolvStoreImpl evolvStore;
+    private WaitForIt waitForIt;
+
     private final ExecutionQueue executionQueue;
-    private final Allocator allocator;
-    private final EvolvAllocationStore store;
-    private final boolean previousAllocations;
     private final EvolvParticipant participant;
+    private final EvolvConfig evolvConfig;
+    private final EvolvEmitter contextBeacon;
+    private final EvolvEmitter eventBeacon;
 
     EvolvClientImpl(EvolvConfig config,
-                    EventEmitter emitter,
-                    ListenableFuture<JsonArray> futureAllocations,
-                    ListenableFuture<JsonObject> futureConfiguration,
-                    Allocator allocator,
-                    boolean previousAllocations,
-                    EvolvParticipant participant) {
-        this.store = config.getEvolvAllocationStore();
+                    EvolvParticipant participant,
+                    WaitForIt waitForIt){
+
         this.executionQueue = config.getExecutionQueue();
-        this.eventEmitter = emitter;
-        this.futureAllocations = futureAllocations;
-        this.futureConfiguration = futureConfiguration;
-        this.allocator = allocator;
-        this.previousAllocations = previousAllocations;
+        this.evolvConfig = config;
         this.participant = participant;
-        init();
+        this.waitForIt = waitForIt;
+        this.evolvStore = new EvolvStoreImpl(config,participant,waitForIt);
+        this.evolvContext = new EvolvContextImpl(evolvStore, waitForIt);
+        this.contextBeacon = config.isAnalytics() ? new EvolvEmitter(config.getEndpoint()
+                + '/' + config.getEnvironmentId() + "/data",
+                evolvContext,
+                evolvConfig.isBufferEvents()) : null;
+        this.eventBeacon =  new EvolvEmitter(config.getEndpoint()
+                + '/' + config.getEnvironmentId() + "/events",
+                evolvContext,
+                evolvConfig.isBufferEvents());
+        //the first time we initialize the context
+        initialize(participant.getUserId(),null,null);
     }
 
-    private void init() {
+    public EvolvContext getEvolvContext() {
+        return evolvContext;
+    }
 
+    @Override
+    public void initialize(String uid, Map<String, Object> remoteContext,  Map<String, Object> localContext) {
+        if (initialized) {
+            try {
+                throw new EvolvKeyError("Evolv: Client is already initialized");
+            } catch (EvolvKeyError evolvKeyError) {
+                evolvKeyError.printStackTrace();
+            }
+        }
+
+        if (uid.isEmpty()) {
+            try {
+                throw new EvolvKeyError("Evolv: "+ uid + " must be specified");
+            } catch (EvolvKeyError evolvKeyError) {
+                evolvKeyError.printStackTrace();
+            }
+        }
+
+        evolvContext.initialize(uid, remoteContext, localContext);
+        evolvStore.initialize(evolvContext);
+
+        // TODO: 31.05.2021 add
+
+        if (evolvConfig.isAnalytics()) {
+
+            waitForIt.waitFor(evolvContext, CONTEXT_INITIALIZED, new EvolvInvocation<Object>() {
+                @Override
+                public void invoke(Object value) {
+                //contextBeacon.emit(type, context.remoteContext);
+                contextBeacon.emit(value.toString(),null,false);
+
+                }
+        });
+
+//            waitForIt.waitFor(evolvContext, CONTEXT_INITIALIZED, function (type, ctx) {
+//                contextBeacon.emit(type, context.remoteContext);
+//            });
+            
+        }
     }
 
     @Override
     public <T> T get(String key, T defaultValue) {
-        try {
-            if (futureAllocations == null) {
-                return defaultValue;
-            }
-
-            // this is blocking
-            JsonArray allocations = futureAllocations.get();
-            if (!Allocator.allocationsNotEmpty(allocations)) {
-                return defaultValue;
-            }
-
-            GenericClass<T> cls = new GenericClass(defaultValue.getClass());
-            T value = new Allocations(allocations, store).getValueFromAllocations(key, cls.getMyType(),
-                    participant);
-
-            if (value == null) {
-                throw new EvolvKeyError("Got null when retrieving key from allocations.");
-            }
-
-            return value;
-        } catch (EvolvKeyError e) {
-            LOGGER.debug("Unable to retrieve the treatment. Returning " +
-                    "the default.", e);
-            return defaultValue;
-        } catch (Exception e) {
-            LOGGER.error("An error occurred while retrieving the treatment. Returning " +
-                    "the default.", e);
-            return defaultValue;
-        }
+        return null;
     }
 
     @Override
     public <T> void subscribe(String key, T defaultValue, EvolvAction<T> function) {
-        Execution execution = new Execution<>(key, defaultValue, function, participant, store);
-        if (previousAllocations) {
-            try {
-                JsonArray allocations = store.get(participant.getUserId());
-                execution.executeWithAllocation(allocations);
-            } catch (EvolvKeyError e) {
-                LOGGER.debug("Unable to retrieve the value of %s from the allocation.",
-                        execution.getKey());
-                execution.executeWithDefault();
-            } catch (Exception e) {
-                LOGGER.error("There was an error when applying the stored treatment.", e);
-            }
-        }
-
-        Allocator.AllocationStatus allocationStatus = allocator.getAllocationStatus();
-        if (allocationStatus == Allocator.AllocationStatus.FETCHING) {
-            executionQueue.enqueue(execution);
-            return;
-        } else if (allocationStatus == Allocator.AllocationStatus.RETRIEVED) {
-            try {
-                JsonArray allocations = store.get(participant.getUserId());
-                execution.executeWithAllocation(allocations);
-                return;
-            } catch (EvolvKeyError e) {
-                LOGGER.debug(String.format("Unable to retrieve" +
-                        " the value of %s from the allocation.",  execution.getKey()), e);
-            } catch (Exception e) {
-                LOGGER.error("There was an error applying the subscribed method.", e);
-            }
-        }
-
-        execution.executeWithDefault();
-    }
-
-    @Override
-    public void emitEvent(String key, Double score) {
-        this.eventEmitter.emit(key, score);
-    }
-
-    @Override
-    public void emitEvent(String key) {
-        this.eventEmitter.emit(key);
     }
 
     @Override
     public void confirm() {
-        Allocator.AllocationStatus allocationStatus = allocator.getAllocationStatus();
-        if (allocationStatus == Allocator.AllocationStatus.FETCHING) {
-            allocator.sandBagConfirmation();
-        } else if (allocationStatus == Allocator.AllocationStatus.RETRIEVED) {
-            eventEmitter.confirm(store.get(participant.getUserId()));
-        }
     }
 
     @Override
     public void contaminate() {
-        Allocator.AllocationStatus allocationStatus = allocator.getAllocationStatus();
-        if (allocationStatus == Allocator.AllocationStatus.FETCHING) {
-            allocator.sandBagContamination();
-        } else if (allocationStatus == Allocator.AllocationStatus.RETRIEVED) {
-            eventEmitter.contaminate(store.get(participant.getUserId()));
-        }
     }
 
     @Override
     public <T> T getActiveKeys(String prefix, T defaultValue) {
-        try {
-            if (futureAllocations == null) {
-                return defaultValue;
-            }
-
-            // this is blocking
-            JsonArray allocations = futureAllocations.get();
-            if (!Allocator.allocationsNotEmpty(allocations)) {
-                return defaultValue;
-            }
-
-            GenericClass<T> cls = new GenericClass(defaultValue.getClass());
-            T value = new Allocations(allocations, store)
-                    .getActiveKeysFromAllocations(prefix, cls.getMyType(),
-                    participant);
-
-            if (value == null) {
-                throw new EvolvKeyError("Got null when retrieving key from allocations.");
-            }
-
-            return value;
-        } catch (EvolvKeyError e) {
-            LOGGER.debug("Unable to retrieve the treatment. Returning " +
-                    "the default.", e);
-            return defaultValue;
-        } catch (Exception e) {
-            LOGGER.error("An error occurred while retrieving the treatment. Returning " +
-                    "the default.", e);
-            return defaultValue;
-        }
+        return null;
     }
+
 }

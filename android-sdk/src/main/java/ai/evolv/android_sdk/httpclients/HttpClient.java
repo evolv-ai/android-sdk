@@ -20,6 +20,6 @@ public interface HttpClient {
      */
     ListenableFuture<String> get(String url);
 
-    ListenableFuture<String> post(String url, Map<String, String> userAttributes);
+    ListenableFuture<String> post(String url, String userId);
 
 }
