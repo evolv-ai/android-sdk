@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -24,7 +25,6 @@ class EvolvContextImpl implements EvolvContext {
     public static String CONTEXT_DESTROYED = "context.destroyed";
 
     private String uid;
-    private String sid;
     private JsonObject remoteContext = new JsonObject();
     private JsonObject localContext = new JsonObject();
     private UtilityHelper helper = new UtilityHelper();
@@ -36,6 +36,10 @@ class EvolvContextImpl implements EvolvContext {
     public EvolvContextImpl(EvolvStoreImpl evolvStore, WaitForIt waitForIt) {
         this.evolvStore = evolvStore;
         this.waitForIt = waitForIt;
+    }
+
+    public JsonObject getRemoteContext() {
+        return remoteContext;
     }
 
     @Override
@@ -85,6 +89,7 @@ class EvolvContextImpl implements EvolvContext {
         if(value instanceof JsonElement){
             jsonValue = (JsonElement) value;
         }else if(value instanceof String){
+            // TODO: 04.06.2021 use a non-depreciated method "JsonParser"
             JsonParser parser = new JsonParser();
             String modifyValue = ((String)value).replaceAll(" ",".");
             jsonValue = parser.parse(modifyValue);
@@ -93,18 +98,45 @@ class EvolvContextImpl implements EvolvContext {
         ensureInitialized();
 
         JsonElement context = local ? localContext : remoteContext;
-        // TODO: 01.06.2021 add "before"
+        JsonElement before = helper.getValueForKey(key, context);
+
+        // TODO: 04.06.2021 checking value type (because "before" and "value" need to compare correctly)
+        if(before != null) {
+            if (before == value || before.toString().equals(value)) {
+                return false;
+            }
+        }
 
         helper.setKeyToValue(key, jsonValue, context);
 
         Object updated = this.resolve();
 
-        // TODO: 01.06.2021 add "if"
+        if (before == null ) {
+            // TODO: 04.06.2021 note: I need to decide which type is better to use (JsonElement/List<Object>)
+            List<Object> objects = new ArrayList<>(Arrays.asList(
+                    CONTEXT_VALUE_ADDED,
+                    key,
+                    value,
+                    local,
+                    updated));
+
+            waitForIt.emit(this, CONTEXT_VALUE_ADDED, objects);
+        } else {
+            // TODO: 04.06.2021 note: I need to decide which type is better to use (JsonElement/List<Object>)
+            List<Object> objects = new ArrayList<>(Arrays.asList(
+                    CONTEXT_VALUE_CHANGED,
+                    key,
+                    value,
+                    before,
+                    local,
+                    updated));
+
+            waitForIt.emit(this, CONTEXT_VALUE_CHANGED, objects);
+        }
 
         // TODO: 01.06.2021 understand the data type  emit(,,?)
-        waitForIt.emit(this, CONTEXT_CHANGED, null);
+        waitForIt.emit(this, CONTEXT_CHANGED, updated);
         return true;
-
     }
 
     @Override

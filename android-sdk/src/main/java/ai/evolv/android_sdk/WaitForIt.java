@@ -4,97 +4,97 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import ai.evolv.android_sdk.evolvinterface.EvolvAction;
-import ai.evolv.android_sdk.evolvinterface.EvolvContext;
 import ai.evolv.android_sdk.evolvinterface.EvolvInvocation;
 
-import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_VALUE_ADDED;
-import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_VALUE_REMOVED;
-
-class WaitForIt {
+class WaitForIt<T> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WaitForIt.class);
 
-    Map<Object, Map<String, List<Object>>> scopedHandlers = new LinkedHashMap<>();
-    Map<Object, Map<String, List<Object>>> scopedOnceHandlers = new LinkedHashMap<>();
-    Map<Object, Map<String, List<Object>>> scopedPayloads = new LinkedHashMap<>();
+    Map<Object, Map<String, List<EvolvInvocation<T>>>> scopedHandlers = new LinkedHashMap<>();
+    Map<Object, Map<String, List<EvolvInvocation<T>>>> scopedOnceHandlers = new LinkedHashMap<>();
+    Map<Object, Map<String, T>> scopedPayloads = new LinkedHashMap<>();
 
     void ensureScope(Object scope) {
         if (scopedHandlers.containsKey(scope)) {
             return;
         }
 
-        Map<String, List<Object>> scopedHandlersValueMap = new LinkedHashMap<>();
-        Map<String, List<Object>> scopedOnceHandlerValueMap = new LinkedHashMap<>();
-        Map<String, List<Object>> scopedPayloadsValueMap = new LinkedHashMap<>();
+        Map<String, List<EvolvInvocation<T>>> scopedHandlersValueMap = new LinkedHashMap<>();
+        Map<String, List<EvolvInvocation<T>>> scopedOnceHandlerValueMap = new LinkedHashMap<>();
+        Map<String, T> scopedPayloadsValueMap = new LinkedHashMap<>();
 
         scopedHandlers.put(scope, scopedHandlersValueMap);
         scopedOnceHandlers.put(scope, scopedOnceHandlerValueMap);
         scopedPayloads.put(scope, scopedPayloadsValueMap);
+
     }
 
-    void waitFor(Object scope, String it, Object handler) {
+    void destroyScope(Object scope) {
+        scopedHandlers.clear();
+        scopedOnceHandlers.clear();
+        scopedPayloads.clear();
+    }
+
+    // TODO: 04.06.2021 need to create test
+    void waitFor(Object scope, String it, EvolvInvocation<T> handler) {
         ensureScope(scope);
 
-        Map<String, List<Object>> handlers = scopedHandlers.get(scope);
-        Map<String, List<Object>> payloads = scopedPayloads.get(scope);
+        Map<String, List<EvolvInvocation<T>>> handlers = scopedHandlers.get(scope);
+        Map<String, T> payloads = scopedPayloads.get(scope);
 
-        List<Object> objects = new ArrayList<>();
+        List<EvolvInvocation<T>> list = new ArrayList<>();
+        list.add(handler);
 
-        objects.add(handler);
-        handlers.put(it, objects);
+        handlers.put(it, list);
 
         if (payloads.containsKey(it)) {
-            if (handler instanceof EvolvInvocation) {
-                ((EvolvInvocation) handler).invoke(payloads.get(it));
-            }
+               handler.invoke(payloads.get(it));
         }
     }
 
-//    void waitFor(Object scope, String it, Object handler) {
-//        ensureScope(scope);
-//
-//        Map<String, List<Object>> handlers = scopedHandlers.get(scope);
-//        Map<String, List<Object>> payloads = scopedPayloads.get(scope);
-//
-//        List<Object> objects = new ArrayList<>();
-//
-//        objects.add(handler);
-//        handlers.put(it, objects);
-//
-//        if (payloads.containsKey(it)) {
-//            if (handler instanceof EvolvInvocation) {
-//                ((EvolvInvocation) handler).invoke(payloads.get(it));
-//            }
-//        }
-//    }
-
-    void emit(Object scope, String it, List<Object> list) {
+    // TODO: 04.06.2021 need to create test and debug it
+    void waitOnceFor(Object scope, String it, EvolvInvocation<T> handler) {
         ensureScope(scope);
 
-        Map<String, List<Object>> handlers = scopedHandlers.get(scope);
-        Map<String, List<Object>> onceHandlers = scopedOnceHandlers.get(scope);
-        Map<String, List<Object>> payloads = scopedPayloads.get(scope);
+        Map<String, List<EvolvInvocation<T>>> handlers = scopedOnceHandlers.get(scope);
+        Map<String, T> payloads = scopedPayloads.get(scope);
 
-        payloads.put(it, list);
+        if (payloads.containsKey(it)) {
+            handler.invoke(payloads.get(it));
+            return;
+        }
 
-        List<Object> handlersForIt = handlers.get(it);
+        List<EvolvInvocation<T>> list = new ArrayList<>();
+        list.add(handler);
+
+        handlers.put(it, list);
+    }
+
+    // TODO: 04.06.2021 need to create test
+    void emit(Object scope, String it, T payloadList) {
+        ensureScope(scope);
+
+        Map<String, List<EvolvInvocation<T>>> handlers = scopedHandlers.get(scope);
+        Map<String, List<EvolvInvocation<T>>> onceHandlers = scopedOnceHandlers.get(scope);
+        Map<String, T> payloads = scopedPayloads.get(scope);
+
+        T payload = payloadList;
+        payloads.put(it, payload);
+
+        // TODO: 03.06.2021 add "onceHandlers" logic
+        
+        List<EvolvInvocation<T>> handlersForIt = handlers.get(it);
         if (handlersForIt == null) {
             return;
         }
 
-        for (Object o : handlersForIt) {
+        for (EvolvInvocation<T> handler : handlersForIt) {
             try {
-                //call function
-                //h.apply(undefined, payload);
-                //((EvolvAction)evolvAction).apply();
-
+                handler.invoke( payload);
             } catch (Exception e) {
                 LOGGER.error("Failed to invoke handler of " + it, e);
             }

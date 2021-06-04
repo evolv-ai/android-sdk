@@ -43,4 +43,24 @@ public class UtilityHelper {
         }
         return value;
     }
+
+    public JsonElement getValueForKey(String key, JsonElement map){
+        JsonElement value = null;
+        JsonObject current = (JsonObject) map;
+        String[] keys = key.split(Pattern.quote("."));
+        for (int i = 0; i < keys.length; i++) {
+            String k = keys[i];
+            if (i == (keys.length - 1)) {
+                value = current.get(k);
+                break;
+            }
+
+            if(!current.has(k)){
+                break;
+            }
+                current = (JsonObject) current.get(k);
+
+        }
+        return value;
+    }
 }

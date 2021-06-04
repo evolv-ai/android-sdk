@@ -7,6 +7,8 @@ import com.google.gson.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import ai.evolv.android_sdk.evolvinterface.EvolvAction;
@@ -18,9 +20,18 @@ import ai.evolv.android_sdk.exceptions.EvolvKeyError;
 import ai.evolv.android_sdk.generics.GenericClass;
 
 import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_INITIALIZED;
+import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_VALUE_ADDED;
+import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_VALUE_CHANGED;
+import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_VALUE_REMOVED;
+import static ai.evolv.android_sdk.EvolvStoreImpl.REQUEST_FAILED;
 
 public class EvolvClientImpl implements EvolvClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(EvolvClientImpl.class);
+
+    public static String INITIALIZED = "initialized";
+    public static String CONFIRMED = "'confirmed'";
+    public static String CONTAMINATED = "'contaminated'";
+    public static String EVENT_EMITTED = "event.emitted";
 
     private boolean initialized = false;
     private EvolvContext evolvContext;
@@ -35,24 +46,24 @@ public class EvolvClientImpl implements EvolvClient {
 
     EvolvClientImpl(EvolvConfig config,
                     EvolvParticipant participant,
-                    WaitForIt waitForIt){
+                    WaitForIt waitForIt) {
 
         this.executionQueue = config.getExecutionQueue();
         this.evolvConfig = config;
         this.participant = participant;
         this.waitForIt = waitForIt;
-        this.evolvStore = new EvolvStoreImpl(config,participant,waitForIt);
+        this.evolvStore = new EvolvStoreImpl(config, participant, waitForIt);
         this.evolvContext = new EvolvContextImpl(evolvStore, waitForIt);
         this.contextBeacon = config.isAnalytics() ? new EvolvEmitter(config.getEndpoint()
                 + '/' + config.getEnvironmentId() + "/data",
                 evolvContext,
                 evolvConfig.isBufferEvents()) : null;
-        this.eventBeacon =  new EvolvEmitter(config.getEndpoint()
+        this.eventBeacon = new EvolvEmitter(config.getEndpoint()
                 + '/' + config.getEnvironmentId() + "/events",
                 evolvContext,
                 evolvConfig.isBufferEvents());
         //the first time we initialize the context
-        initialize(participant.getUserId(),null,null);
+        initialize(participant.getUserId(), null, null);
     }
 
     public EvolvContext getEvolvContext() {
@@ -60,7 +71,7 @@ public class EvolvClientImpl implements EvolvClient {
     }
 
     @Override
-    public void initialize(String uid, Map<String, Object> remoteContext,  Map<String, Object> localContext) {
+    public void initialize(String uid, Map<String, Object> remoteContext, Map<String, Object> localContext) {
         if (initialized) {
             try {
                 throw new EvolvKeyError("Evolv: Client is already initialized");
@@ -71,7 +82,7 @@ public class EvolvClientImpl implements EvolvClient {
 
         if (uid.isEmpty()) {
             try {
-                throw new EvolvKeyError("Evolv: "+ uid + " must be specified");
+                throw new EvolvKeyError("Evolv: " + uid + " must be specified");
             } catch (EvolvKeyError evolvKeyError) {
                 evolvKeyError.printStackTrace();
             }
@@ -84,19 +95,57 @@ public class EvolvClientImpl implements EvolvClient {
 
         if (evolvConfig.isAnalytics()) {
 
-            waitForIt.waitFor(evolvContext, CONTEXT_INITIALIZED, new EvolvInvocation<Object>() {
-                @Override
-                public void invoke(Object value) {
-                //contextBeacon.emit(type, context.remoteContext);
-                contextBeacon.emit(value.toString(),null,false);
+            waitForIt.waitFor(evolvContext, CONTEXT_INITIALIZED, (EvolvInvocation<Object>) type -> {
+                Map<String, List<Object>> payloadMap = new LinkedHashMap<>();
+                payloadMap.put(CONTEXT_INITIALIZED, (List<Object>) payloadMap);
 
+                contextBeacon.emit(CONTEXT_INITIALIZED, payloadMap, false);
+            });
+
+            waitForIt.waitFor(evolvContext, CONTEXT_VALUE_ADDED, (EvolvInvocation<Object>) type -> {
+                // TODO: 04.06.2021 note: need to get "local" from anonymous function
+                boolean local = true;
+                if (local) {
+                    return;
                 }
-        });
+                Map<String, List<Object>> payloadMap = new LinkedHashMap<>();
+                payloadMap.put(CONTEXT_VALUE_ADDED, (List<Object>) payloadMap);
 
-//            waitForIt.waitFor(evolvContext, CONTEXT_INITIALIZED, function (type, ctx) {
-//                contextBeacon.emit(type, context.remoteContext);
-//            });
-            
+                contextBeacon.emit(CONTEXT_VALUE_ADDED, payloadMap, false);
+            });
+
+            waitForIt.waitFor(evolvContext, CONTEXT_VALUE_CHANGED, (EvolvInvocation<Object>) type -> {
+                // TODO: 04.06.2021 note: need to get "local" from anonymous function
+                boolean local = true;
+                if (local) {
+                    return;
+                }
+                Map<String, List<Object>> payloadMap = new LinkedHashMap<>();
+                payloadMap.put(CONTEXT_VALUE_CHANGED, (List<Object>) payloadMap);
+
+                contextBeacon.emit(CONTEXT_VALUE_CHANGED, payloadMap, false);
+            });
+
+            waitForIt.waitFor(evolvContext, CONTEXT_VALUE_REMOVED, (EvolvInvocation<Object>) type -> {
+                // TODO: 04.06.2021 note: need to get "local" from anonymous function
+                boolean local = true;
+                if (local) {
+                    return;
+                }
+                Map<String, List<Object>> payloadMap = new LinkedHashMap<>();
+                payloadMap.put(CONTEXT_VALUE_REMOVED, (List<Object>) payloadMap);
+
+                contextBeacon.emit(CONTEXT_VALUE_REMOVED, payloadMap, false);
+            });
+
+            if (evolvConfig.isAutoConfirm()) {
+                this.confirm();
+                // TODO: 04.06.2021 note: third parameter "this.contaminate.bind(this)" from js SDK
+                waitForIt.waitFor(evolvContext, REQUEST_FAILED, null);
+            }
+
+            initialized = true;
+            waitForIt.emit(evolvContext, INITIALIZED, evolvConfig);
         }
     }
 
