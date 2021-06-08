@@ -32,13 +32,12 @@ class EvolvEmitter {
     }
 
     void emit(String type, Map<String, List<Object>> payload, boolean flush){
+        // TODO: use a non-depreciated method "JsonParser"
         JsonParser parser = new JsonParser();
         JsonObject payloadObject = parser.parse(payload.toString()).getAsJsonObject();
 
         messages.addProperty("type",type);
         messages.add("payload",payloadObject);
-        // TODO: 04.06.2021 sid we don't use anymore
-        //messages.addProperty("sid",((EvolvContextImpl)evolvContext).getSid());
         messages.addProperty("timestamp",new Date().getTime());
 
         if (flush) {

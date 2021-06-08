@@ -73,7 +73,7 @@ class EvolvContextImpl implements EvolvContext {
 
         initialized = true;
 
-        Object resolve = resolve();
+        JsonElement resolve = resolve();
         List<Object> objects = new ArrayList<>();
         objects.add(CONTEXT_INITIALIZED);
         objects.add(resolve);
@@ -89,7 +89,7 @@ class EvolvContextImpl implements EvolvContext {
         if(value instanceof JsonElement){
             jsonValue = (JsonElement) value;
         }else if(value instanceof String){
-            // TODO: 04.06.2021 use a non-depreciated method "JsonParser"
+            // TODO: use a non-depreciated method "JsonParser"
             JsonParser parser = new JsonParser();
             String modifyValue = ((String)value).replaceAll(" ",".");
             jsonValue = parser.parse(modifyValue);
@@ -140,10 +140,10 @@ class EvolvContextImpl implements EvolvContext {
     }
 
     @Override
-    public Object resolve() {
+    public JsonElement resolve() {
         ensureInitialized();
         //return objects.deepClone(mutableResolve());
-        return new Object();
+        return new JsonObject();
     }
 
     private void ensureInitialized() {
