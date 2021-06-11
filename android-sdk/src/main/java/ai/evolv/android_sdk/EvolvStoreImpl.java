@@ -45,6 +45,9 @@ class EvolvStoreImpl {
     public static String GENOME_STRING = "genome";
     public static String AUDIENCE_QUERY_STRING = "audience_query";
 
+    public static String EMPTY_STRING = "";
+
+
     private EvolvConfig evolvConfig;
     ListenableFuture<JsonObject> futureConfiguration;
     ListenableFuture<JsonArray> futureAllocations;
@@ -68,7 +71,7 @@ class EvolvStoreImpl {
     private JsonObject effectiveGenome;
     private JsonObject activeKeys = new JsonObject();
     private JsonObject activeVariants = new JsonObject();
-    List<String> expLoadedList = new ArrayList<>();
+    private List<String> expLoadedList = new ArrayList<>();
     private JsonArray disabled = new JsonArray();
     private JsonArray entry = new JsonArray();
 
@@ -213,7 +216,7 @@ class EvolvStoreImpl {
         if (configRequest) {
             waitForIt.emit(evolvContext, CONFIG_REQUEST_RECEIVED, requestedKeys);
             if (value instanceof JsonObject) {
-                updateConfig((JsonObject) value);
+                updateConfig(value.getAsJsonObject());
             }
         } else {
             waitForIt.emit(evolvContext, GENOME_REQUEST_RECEIVED, requestedKeys);
@@ -227,6 +230,7 @@ class EvolvStoreImpl {
         // TODO: 01.06.2021 add
     }
 
+    // TODO: 11.06.2021 need a unit test
     private void reevaluateContext() {
 
         // TODO: 01.06.2021 debug config.isJsonNull()
@@ -267,6 +271,7 @@ class EvolvStoreImpl {
 
         Object results = evaluatePredicates(version, evolvContext, config);
 
+
     }
 
     private void updateGenome(JsonArray value) {
@@ -278,7 +283,6 @@ class EvolvStoreImpl {
         allocations = value;
         genomeFailed = false;
 
-        // TODO: 08.06.2021 move the iterator into a helper class
         Iterator<JsonElement> iterator = allocs.iterator();
 
         while (iterator.hasNext()) {
@@ -347,7 +351,7 @@ class EvolvStoreImpl {
 
     }
 
-    private void endsWithFilter() {
+    void endsWithFilter() {
         for (int i = expLoadedList.size() - 1; i >= 0; i--) {
             if (endsWithFilter.apply(expLoadedList.get(i))) {
                 expLoadedList.remove(i);
@@ -366,7 +370,7 @@ class EvolvStoreImpl {
         recurse(map, "");
     }
 
-    private String recurse(JsonElement current, String parentKey) {
+    public String recurse(JsonElement current, String parentKey) {
         Set<String> keys = current.getAsJsonObject().keySet();
 
         Iterator<String> iterator = keys.iterator();
@@ -390,7 +394,7 @@ class EvolvStoreImpl {
             }
         }
 
-        return items.toString();
+        return EMPTY_STRING;
     }
 
     private void evaluateAllocationPredicates(EvolvContext evolvContext,
@@ -400,6 +404,7 @@ class EvolvStoreImpl {
         // TODO: 02.06.2021 implement
     }
 
+    // TODO: 11.06.2021 need a unit test
     private Object evaluatePredicates(int version, EvolvContext evolvContext, JsonElement config) {
         JsonArray result = new JsonArray();
 
@@ -408,7 +413,6 @@ class EvolvStoreImpl {
                 return result;
 
         JsonElement evaluableContext = evolvContext.resolve();
-        // TODO: 08.06.2021 move the iterator into a helper class
         Iterator<JsonElement> iterator = config
                 .getAsJsonObject()
                 .get("_experiments")
@@ -434,6 +438,7 @@ class EvolvStoreImpl {
         return result;
     }
 
+    // TODO: 11.06.2021 need a unit test
     private void evaluateBranch(JsonElement context,
                                 JsonElement config,
                                 String prefix,
@@ -459,7 +464,6 @@ class EvolvStoreImpl {
         }
 
         Set<String> keys = config.getAsJsonObject().keySet();
-        // TODO: 08.06.2021 move the iterator into a helper class
         Iterator<String> iterator = keys.iterator();
 
         while (iterator.hasNext()) {
@@ -471,4 +475,7 @@ class EvolvStoreImpl {
         }
     }
 
+    public List<String> getExpLoadedList() {
+        return expLoadedList;
+    }
 }

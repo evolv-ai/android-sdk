@@ -142,6 +142,7 @@ class EvolvContextImpl implements EvolvContext {
     @Override
     public JsonElement resolve() {
         ensureInitialized();
+        // TODO: 10.06.2021 implement
         //return objects.deepClone(mutableResolve());
         return new JsonObject();
     }
