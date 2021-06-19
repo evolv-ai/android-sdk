@@ -20,12 +20,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 
-import ai.evolv.android_sdk.evolvinterface.EvolvAction;
 import ai.evolv.android_sdk.evolvinterface.EvolvContext;
 import ai.evolv.android_sdk.evolvinterface.EvolvInvocation;
 import ai.evolv.android_sdk.exceptions.EvolvKeyError;
+import ai.evolv.android_sdk.helper.UtilityHelper;
 
 import static ai.evolv.android_sdk.EvolvConfig.DEFAULT_VERSION;
 import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_CHANGED;
@@ -46,6 +45,8 @@ class EvolvStoreImpl {
     public static String GENOME_STRING = "genome";
     public static String AUDIENCE_QUERY_STRING = "audience_query";
 
+    public static String EMPTY_STRING = "";
+
 
     private EvolvConfig evolvConfig;
     ListenableFuture<JsonObject> futureConfiguration;
@@ -55,6 +56,7 @@ class EvolvStoreImpl {
     private EvolvParticipant participant;
     Allocator allocator;
     JsonObject config;
+    private UtilityHelper helper;
     private boolean configFailed = false;
     private JsonObject clientContext;
     private JsonArray allocations;
@@ -69,6 +71,14 @@ class EvolvStoreImpl {
     private JsonObject effectiveGenome;
     private JsonObject activeKeys = new JsonObject();
     private JsonObject activeVariants = new JsonObject();
+    private List<String> expLoadedList = new ArrayList<>();
+    private JsonArray disabled = new JsonArray();
+    private JsonArray entry = new JsonArray();
+
+    @FunctionalInterface
+    interface Filter<T> {
+        boolean apply(T key);
+    }
 
     EvolvInvocation invocation = value -> {
 
@@ -82,11 +92,11 @@ class EvolvStoreImpl {
         }
     };
 
-    class KeyStates {
+    private class KeyStates {
 
         Set needed = new HashSet();
         Set requested = new HashSet();
-        Map experiments = new HashMap<>();
+        JsonArray experiments = new JsonArray();
     }
 
     public EvolvStoreImpl(EvolvConfig evolvConfig,
@@ -98,6 +108,7 @@ class EvolvStoreImpl {
         this.waitForIt = waitForIt;
         evolvPredicates = new EvolvPredicatesImpl();
         allocator = new Allocator(evolvConfig, participant);
+        helper = new UtilityHelper();
         setVersion();
     }
 
@@ -156,7 +167,7 @@ class EvolvStoreImpl {
                 try {
 
                     List<Object> requestedKeys = new ArrayList<>();
-
+                    // TODO: use a non-depreciated method "JsonParser"
                     JsonParser parser = new JsonParser();
                     JsonArray allocations = parser.parse(responseFutureAllocations.get()).getAsJsonArray();
                     Log.d("pull_evolv", "2" + responseFutureAllocations.get());
@@ -181,6 +192,7 @@ class EvolvStoreImpl {
             @Override
             public void run() {
                 try {
+                    // TODO: use a non-depreciated method "JsonParser"
                     JsonParser parser = new JsonParser();
                     JsonObject configuration = parser.parse(responseFutureConfiguration.get()).getAsJsonObject();
                     setFutureConfiguration.set(configuration);
@@ -204,7 +216,7 @@ class EvolvStoreImpl {
         if (configRequest) {
             waitForIt.emit(evolvContext, CONFIG_REQUEST_RECEIVED, requestedKeys);
             if (value instanceof JsonObject) {
-                updateConfig((JsonObject) value);
+                updateConfig(value.getAsJsonObject());
             }
         } else {
             waitForIt.emit(evolvContext, GENOME_REQUEST_RECEIVED, requestedKeys);
@@ -218,6 +230,7 @@ class EvolvStoreImpl {
         // TODO: 01.06.2021 add
     }
 
+    // TODO: 11.06.2021 need a unit test
     private void reevaluateContext() {
 
         // TODO: 01.06.2021 debug config.isJsonNull()
@@ -244,7 +257,7 @@ class EvolvStoreImpl {
         reevaluatingContext = false;
     }
 
-    private Object generateEffectiveGenome(Map expsKeyStates, JsonObject genomes) {
+    private Object generateEffectiveGenome(JsonElement expsKeyStates, JsonObject genomes) {
         // TODO: 01.06.2021 implement
         return null;
     }
@@ -255,6 +268,9 @@ class EvolvStoreImpl {
                                             JsonArray allocations,
                                             KeyStates configKeyStates) {
         // TODO: 01.06.2021 implement
+
+        Object results = evaluatePredicates(version, evolvContext, config);
+
 
     }
 
@@ -287,14 +303,98 @@ class EvolvStoreImpl {
     }
 
     private void updateConfig(JsonObject value) {
-
         config = value;
         configFailed = false;
 
         if (config.has("_client")) {
             clientContext = config.getAsJsonObject("_client");
         }
-        // TODO: 27.05.2021 add
+
+        if (value.has("_experiments")) {
+            Iterator<JsonElement> iterator = value.get("_experiments").getAsJsonArray().iterator();
+
+            while (iterator.hasNext()) {
+                JsonObject exp = iterator.next().getAsJsonObject();
+                setConfigLoadedKeys(configKeyStates, exp);
+            }
+        } else {
+            LOGGER.error("Failed to find \"_experiments\" field from config");
+        }
+    }
+
+    private void setConfigLoadedKeys(KeyStates keyStates, JsonObject exp) {
+        JsonObject clean = exp.deepCopy();
+        if (clean.has("id")) clean.remove("id");
+
+        //todo rename variables "jsonObject1" and "jsonObject2" for better understanding
+        JsonObject jsonObject1 = new JsonObject();
+        JsonObject jsonObject2 = new JsonObject();
+
+        JsonArray expLoaded = new JsonArray();
+        JsonArray expMap = new JsonArray();
+
+        jsonObject2.add("loaded", expLoaded);
+        expMap.add(jsonObject2);
+
+        jsonObject1.add(String.valueOf(exp.get("id")), expMap);
+
+        keyStates.experiments.add(jsonObject1);
+
+        expLoadedList.clear();
+        flattenKeys(clean);
+
+        endsWithFilter();
+        // TODO: use a non-depreciated method "JsonParser"
+        JsonParser parser = new JsonParser();
+        JsonArray jsonArray = parser.parse(expLoadedList.toString()).getAsJsonArray();
+        expLoaded.addAll(jsonArray);
+
+    }
+
+    void endsWithFilter() {
+        for (int i = expLoadedList.size() - 1; i >= 0; i--) {
+            if (endsWithFilter.apply(expLoadedList.get(i))) {
+                expLoadedList.remove(i);
+            }
+        }
+    }
+
+    Filter<String> startsWithFilter = key -> !key.startsWith("_")
+            || key.equals("_values")
+            || key.equals("_initializers");
+
+    Filter<String> endsWithFilter = key -> key.endsWith("_values")
+            || key.endsWith("_initializers");
+
+    private void flattenKeys(JsonElement map) {
+        recurse(map, "");
+    }
+
+    public String recurse(JsonElement current, String parentKey) {
+        Set<String> keys = current.getAsJsonObject().keySet();
+
+        Iterator<String> iterator = keys.iterator();
+        Set<String> items = new HashSet<>();
+
+        while (iterator.hasNext()) {
+            String key = iterator.next();
+
+            if (startsWithFilter.apply(key)) {
+                JsonElement element = current.getAsJsonObject().get(key);
+                String newKey = !parentKey.isEmpty() ? (parentKey + '.' + key) : key;
+                items.add(newKey);
+                expLoadedList.add(newKey);
+
+                if (element.isJsonObject()) {
+                    if (element.getAsJsonObject().size() != 0) {
+                        element = current.getAsJsonObject().get(key);
+                        items.add(key.concat(recurse(element, newKey)));
+                    }
+                }
+            }
+        }
+
+        return EMPTY_STRING;
     }
 
     private void evaluateAllocationPredicates(EvolvContext evolvContext,
@@ -304,8 +404,78 @@ class EvolvStoreImpl {
         // TODO: 02.06.2021 implement
     }
 
-    private void evaluatePredicates(int version, EvolvContext evolvContext, JsonElement config) {
-        // TODO: 02.06.2021 implement
+    // TODO: 11.06.2021 need a unit test
+    private Object evaluatePredicates(int version, EvolvContext evolvContext, JsonElement config) {
+        JsonArray result = new JsonArray();
+
+        if (!config.getAsJsonObject().has("_experiments"))
+            if (config.getAsJsonObject().getAsJsonArray("_experiments").size() == 0)
+                return result;
+
+        JsonElement evaluableContext = evolvContext.resolve();
+        Iterator<JsonElement> iterator = config
+                .getAsJsonObject()
+                .get("_experiments")
+                .getAsJsonArray()
+                .iterator();
+
+        while (iterator.hasNext()) {
+            JsonObject exp = iterator.next().getAsJsonObject();
+
+            JsonObject evaluableConfig = exp.deepCopy();
+            if (evaluableConfig.has("id")) evaluableConfig.remove("id");
+
+            evaluateBranch(evaluableContext, evaluableConfig, "", disabled, entry);
+
+            JsonObject jsonObject = new JsonObject();
+
+            jsonObject.add(exp.get("id").getAsString(), disabled);
+            jsonObject.add(exp.get("id").getAsString(), entry);
+
+            result.add(jsonObject);
+        }
+
+        return result;
     }
 
+    // TODO: 11.06.2021 need a unit test
+    private void evaluateBranch(JsonElement context,
+                                JsonElement config,
+                                String prefix,
+                                JsonArray disabled,
+                                JsonArray entry) {
+
+        if (config.isJsonNull() || !config.isJsonObject()) {
+            return;
+        }
+
+        if (config.getAsJsonObject().has("_predicate")) {
+            // TODO: 08.06.2021 RESULT - null. Need to implement "evaluate" Predicates.class
+            JsonElement result = evolvPredicates.evaluate(context, config.getAsJsonObject().get("_predicate"));
+
+            if (result.getAsJsonObject().has("rejected")) {
+                disabled.add(prefix);
+                return;
+            }
+        }
+
+        if (config.getAsJsonObject().has("_is_entry_point")) {
+            entry.add(prefix);
+        }
+
+        Set<String> keys = config.getAsJsonObject().keySet();
+        Iterator<String> iterator = keys.iterator();
+
+        while (iterator.hasNext()) {
+            String key = iterator.next();
+            if (key.startsWith("_")) {
+                return;
+            }
+            evaluateBranch(context, config.getAsJsonObject().get(key), prefix.isEmpty() ? prefix + '.' + key : key, disabled, entry);
+        }
+    }
+
+    public List<String> getExpLoadedList() {
+        return expLoadedList;
+    }
 }

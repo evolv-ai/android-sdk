@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,7 +98,8 @@ public class EvolvClientImpl implements EvolvClient {
 
             waitForIt.waitFor(evolvContext, CONTEXT_INITIALIZED, (EvolvInvocation<Object>) type -> {
                 Map<String, List<Object>> payloadMap = new LinkedHashMap<>();
-                payloadMap.put(CONTEXT_INITIALIZED, (List<Object>) payloadMap);
+                //todo create list which will include all payload parameters from "waitforit"
+                payloadMap.put(CONTEXT_INITIALIZED, new ArrayList<>());
 
                 contextBeacon.emit(CONTEXT_INITIALIZED, payloadMap, false);
             });
@@ -109,7 +111,8 @@ public class EvolvClientImpl implements EvolvClient {
                     return;
                 }
                 Map<String, List<Object>> payloadMap = new LinkedHashMap<>();
-                payloadMap.put(CONTEXT_VALUE_ADDED, (List<Object>) payloadMap);
+                //todo create list which will include all payload parameters from "waitforit"
+                payloadMap.put(CONTEXT_VALUE_ADDED, new ArrayList<>());
 
                 contextBeacon.emit(CONTEXT_VALUE_ADDED, payloadMap, false);
             });
@@ -121,7 +124,8 @@ public class EvolvClientImpl implements EvolvClient {
                     return;
                 }
                 Map<String, List<Object>> payloadMap = new LinkedHashMap<>();
-                payloadMap.put(CONTEXT_VALUE_CHANGED, (List<Object>) payloadMap);
+                //todo create list which will include all payload parameters from "waitforit"
+                payloadMap.put(CONTEXT_VALUE_CHANGED, new ArrayList<>());
 
                 contextBeacon.emit(CONTEXT_VALUE_CHANGED, payloadMap, false);
             });
@@ -133,7 +137,8 @@ public class EvolvClientImpl implements EvolvClient {
                     return;
                 }
                 Map<String, List<Object>> payloadMap = new LinkedHashMap<>();
-                payloadMap.put(CONTEXT_VALUE_REMOVED, (List<Object>) payloadMap);
+                //todo create list which will include all payload parameters from "waitforit"
+                payloadMap.put(CONTEXT_VALUE_REMOVED, new ArrayList<>());
 
                 contextBeacon.emit(CONTEXT_VALUE_REMOVED, payloadMap, false);
             });

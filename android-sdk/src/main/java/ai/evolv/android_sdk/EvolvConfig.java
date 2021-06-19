@@ -8,11 +8,9 @@ public class EvolvConfig {
     static final String DEFAULT_HTTP_SCHEME = "https";
     static final String PROD_DOMAIN = "participants.evolv.ai";
     static final String TEST_DOMAIN = "participants-stg.evolv.ai";
-    static final String DEFAULT_DOMAIN = TEST_DOMAIN;
+    static final String DEFAULT_DOMAIN = PROD_DOMAIN;
     static final String DEFAULT_ENDPOINT = "'https://participants.evolv.ai/') + 'v'";
     static final int DEFAULT_VERSION = 1;
-
-    private static final int DEFAULT_ALLOCATION_STORE_SIZE = 1000;
 
     private final String httpScheme;
     private final String domain;
@@ -84,7 +82,6 @@ public class EvolvConfig {
 
     public static class Builder {
 
-        private int allocationStoreSize = DEFAULT_ALLOCATION_STORE_SIZE;
         private String httpScheme = DEFAULT_HTTP_SCHEME;
         private String domain = DEFAULT_DOMAIN;
         private String endpoint = DEFAULT_ENDPOINT;
@@ -126,7 +123,6 @@ public class EvolvConfig {
             return this;
         }
 
-
         /**
          * Tells the SDK to use either http or https.
          * @param scheme either http or https
@@ -134,16 +130,6 @@ public class EvolvConfig {
          */
         public Builder setHttpScheme(String scheme) {
             this.httpScheme = scheme;
-            return this;
-        }
-
-        /**
-         * Sets the DefaultAllocationStores size.
-         * @param size number of entries allowed in the default allocation store
-         * @return EvolvClientBuilder class
-         */
-        public Builder setDefaultAllocationStoreSize(int size) {
-            this.allocationStoreSize = size;
             return this;
         }
 
@@ -163,7 +149,5 @@ public class EvolvConfig {
                     endpoint,
                     httpClient);
         }
-
     }
-
 }

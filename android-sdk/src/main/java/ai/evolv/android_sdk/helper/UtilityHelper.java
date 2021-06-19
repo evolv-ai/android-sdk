@@ -1,13 +1,9 @@
 package ai.evolv.android_sdk.helper;
 
-import android.util.Log;
-
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import java.util.ArrayList;
 import java.util.regex.Pattern;
 
 public class UtilityHelper {

@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
 
         // build config with custom timeout and custom allocation store
         // set client to use sandbox environment
-        EvolvConfig config = EvolvConfig.builder("e30a43d71c", httpClient)
+        EvolvConfig config = EvolvConfig.builder("8b50696b6c", httpClient) //e30a43d71c
                 .build();
 
         // initialize the client with a stored user
