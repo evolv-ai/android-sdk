@@ -134,7 +134,6 @@ class EvolvPredicatesImpl {
          //Evaluates a single filter rule against a user.
         //return !!FILTER_OPERATORS[rule.operator](value, rule.value);
         return false;
-
     }
 
     private JsonElement valueFromKey(JsonElement user, JsonObject rule) {
@@ -142,5 +141,30 @@ class EvolvPredicatesImpl {
         return null;
     }
 
+    @FunctionalInterface
+    interface Function<A, B> {
+        boolean apply(A one, B two);
+    }
 
+    private Map<String, Function> operators = createOperatorsMap();
+
+    private Map<String, Function> createOperatorsMap() {
+        Map<String, Function> operatorsMap = new HashMap<>();
+
+        operatorsMap.put("contains", (Function<String, String>) (a, b) -> a.indexOf(b) >= 0);
+        // TODO: 11.06.2021  "defined" is the same as an "exists" (Android don't have undefined)!!!
+        operatorsMap.put("defined", (Function<String, String>) (a, b) ->  a !=null);
+        operatorsMap.put("equal", (Function<String, String>) (a, b) -> a == b);
+        operatorsMap.put("exists", (Function<String, String>) (a, b) -> a !=null);
+        operatorsMap.put("not_contains", (Function<String, String>) (a, b) -> !(a.indexOf(b) >= 0));
+        operatorsMap.put("not_defined", (Function<String, String>) (a, b) -> a !=null);
+        operatorsMap.put("not_equal", (Function<String, String>) (a, b) -> a != b);
+        operatorsMap.put("not_regex_match", (Function<String, String>) (a, b) -> false);
+        operatorsMap.put("not_regex64_match", (Function<String, String>) (a, b) -> false);
+        operatorsMap.put("not_starts_with", (Function<String, String>) (a, b) -> !a.startsWith(b));
+        operatorsMap.put("regex_match", (Function<String, String>) (a, b) -> false);
+        operatorsMap.put("regex64_match", (Function<String, String>) (a, b) -> false);
+
+        return operatorsMap;
+    }
 }
