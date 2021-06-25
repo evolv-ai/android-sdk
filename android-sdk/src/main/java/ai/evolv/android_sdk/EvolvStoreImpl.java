@@ -411,8 +411,9 @@ class EvolvStoreImpl {
         if (!config.getAsJsonObject().has("_experiments"))
             if (config.getAsJsonObject().getAsJsonArray("_experiments").size() == 0)
                 return result;
-
-        JsonElement evaluableContext = evolvContext.resolve();
+        // TODO: 23.06.2021 need to create "context merge" between two contexts
+        //JsonElement evaluableContext = evolvContext.resolve();
+        JsonElement evaluableContext = ((EvolvContextImpl)evolvContext).getRemoteContext();
         Iterator<JsonElement> iterator = config
                 .getAsJsonObject()
                 .get("_experiments")
@@ -450,7 +451,6 @@ class EvolvStoreImpl {
         }
 
         if (config.getAsJsonObject().has("_predicate")) {
-            // TODO: 08.06.2021 RESULT - null. Need to implement "evaluate" Predicates.class
             JsonElement result = evolvPredicates.evaluate(context, config.getAsJsonObject().get("_predicate"));
 
             if (result.getAsJsonObject().has("rejected")) {
@@ -458,9 +458,10 @@ class EvolvStoreImpl {
                 return;
             }
         }
-
         if (config.getAsJsonObject().has("_is_entry_point")) {
-            entry.add(prefix);
+            if(config.getAsJsonObject().get("_is_entry_point").isJsonPrimitive()){
+                entry.add(prefix);
+            }
         }
 
         Set<String> keys = config.getAsJsonObject().keySet();
@@ -477,5 +478,9 @@ class EvolvStoreImpl {
 
     public List<String> getExpLoadedList() {
         return expLoadedList;
+    }
+
+    private void getActiveKeys(){
+        // TODO: 25.06.2021 implement
     }
 }
