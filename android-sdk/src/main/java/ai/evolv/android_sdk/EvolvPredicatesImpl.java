@@ -1,5 +1,7 @@
 package ai.evolv.android_sdk;
 
+import android.util.Log;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
@@ -25,7 +27,7 @@ class EvolvPredicatesImpl {
         JsonObject failed = new JsonObject();
         JsonObject touched = new JsonObject();
         JsonObject rejected = new JsonObject();
-        // TODO: 11.06.2021 define the type for the result
+
         result.add("passed", passed);
         result.add("failed", failed);
         result.add("touched", touched);
@@ -36,8 +38,8 @@ class EvolvPredicatesImpl {
         if (predicate.isJsonObject()) {
             predicateObject = predicate.getAsJsonObject();
         }
-
-        rejected.addProperty("rejected", !evaluatePredicate(context, predicateObject, passed, failed));
+        boolean rejectedPredicate = !evaluatePredicate(context, predicateObject, passed, failed);
+        rejected.addProperty("rejected", rejectedPredicate);
 
         JsonObject passedObject = result.get("passed").getAsJsonObject();
         JsonObject failedObject = result.get("failed").getAsJsonObject();
@@ -74,16 +76,15 @@ class EvolvPredicatesImpl {
         for (int i = 0; i < rules.size(); i++) {
             boolean passed = evaluateRule(user, query, rules.get(i).getAsJsonObject(), passedRules, failedRules);
 
-            if (passed && combinator.equals("OR")) {
+            if (passed && combinator.equals("or")) {
                 return true;
             }
-            if (!passed && combinator.equals("AND")) {
+            if (!passed && combinator.equals("and")) {
                 return false;
             }
         }
 
-        // If we've reached this point on an 'or' all rules failed.
-        return combinator.equals("AND");
+        return combinator.equals("and");
     }
 
     // TODO: 11.06.2021 need a unit test
@@ -106,16 +107,14 @@ class EvolvPredicatesImpl {
 
         // Any other rule is also a terminating branch in our recursion tree, so we add rule id to pass/fail rule set
         if (result) {
-            passedRules.addProperty("id", query.get("id").getAsString());
-            if (rule.has("index"))
-                passedRules.addProperty("index", rule.get("index").getAsString());
-            passedRules.addProperty("field", rule.get("field").getAsString());
+            if (rule.has("id")) passedRules.addProperty("id", query.get("id").getAsString());
+            if (rule.has("index")) passedRules.addProperty("index", rule.get("index").getAsString());
+            if (rule.has("field")) passedRules.addProperty("field", rule.get("field").getAsString());
 
         } else {
-            failedRules.addProperty("id", query.get("id").getAsString());
-            if (rule.has("index"))
-                failedRules.addProperty("index", rule.get("index").getAsString());
-            failedRules.addProperty("field", rule.get("field").getAsString());
+            if (rule.has("id")) failedRules.addProperty("id", query.get("id").getAsString());
+            if (rule.has("index")) failedRules.addProperty("index", rule.get("index").getAsString());
+            if (rule.has("field")) failedRules.addProperty("field", rule.get("field").getAsString());
         }
 
         return result;
@@ -124,7 +123,7 @@ class EvolvPredicatesImpl {
      boolean evaluateFilter(JsonElement user, JsonObject rule) {
         JsonElement value = valueFromKey(user, rule.get("field").getAsString());
 
-        if (rule.get("operator").getAsString().startsWith("kv_") || value.isJsonNull()) {
+        if (value.isJsonNull()) {
             return false;
         }
 

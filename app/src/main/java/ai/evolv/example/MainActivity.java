@@ -75,12 +75,20 @@ public class MainActivity extends AppCompatActivity {
         });
 
         EvolvContext evolvContext = ((EvolvClientImpl)client).getEvolvContext();
-
+        //case 1
         evolvContext.set("signedin","yes",false);
+        //case 2
+//        evolvContext.set("authenticated","false",false);
+//        evolvContext.set("text","cancel",false);
+//        evolvContext.set("device","mobile",false);
+        //case 3
+        //evolvContext.set("Age","26",false);
+        //evolvContext.set("Sex","female",false);
+        //evolvContext.set("view","home",false);
+        //evolvContext.set("view","next",false);
 
         // TODO: 02.06.2021 allow adding third or more orders of keys to the remote context
         //evolvContext.set("key.test.test1","test_value",false);
-
 
     }
 

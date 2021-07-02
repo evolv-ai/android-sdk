@@ -72,8 +72,6 @@ class EvolvStoreImpl {
     private JsonObject activeKeys = new JsonObject();
     private JsonObject activeVariants = new JsonObject();
     private List<String> expLoadedList = new ArrayList<>();
-    private JsonArray disabled = new JsonArray();
-    private JsonArray entry = new JsonArray();
 
     @FunctionalInterface
     interface Filter<T> {
@@ -243,35 +241,169 @@ class EvolvStoreImpl {
         reevaluatingContext = true;
 
         setActiveAndEntryKeyStates(version, evolvContext, config, allocations, configKeyStates);
+        // TODO: 29.06.2021 implement
         Object result = generateEffectiveGenome(configKeyStates.experiments, genomes);
 
-        // TODO: 01.06.2021 add
+        clearActiveKeys();
+        clearActiveVariants();
 
-        evolvContext.set("keys.active", activeKeys, false);
-        evolvContext.set("variants.active", activeVariants, false);
+
+        for (JsonElement experiment : configKeyStates.experiments) {
+
+            for (Map.Entry<String, JsonElement> elementEntry : experiment.getAsJsonObject().entrySet()) {
+
+                for (JsonElement jsonElement : elementEntry.getValue().getAsJsonArray()) {
+
+                    for (Map.Entry<String, JsonElement> activeKeyEntry : jsonElement.getAsJsonObject().entrySet()) {
+                        if(activeKeyEntry.getKey().startsWith("active_")){
+                            activeKeys.addProperty(activeKeyEntry.getKey(),activeKeyEntry.getValue().getAsString());
+                        }
+                    }
+                }
+            }
+            // TODO: 30.06.2021 add pruned
+        }
+
+        JsonObject newActiveKeys = activeKeys.deepCopy();
+        JsonObject newActiveVariants = activeVariants.deepCopy();
+
+        evolvContext.set("keys.active", newActiveKeys, false);
+        evolvContext.set("variants.active", newActiveVariants, false);
 
         // TODO: 01.06.2021 understand the data type  emit(,,?)
         waitForIt.emit(evolvContext, EFFECTIVE_GENOME_UPDATED, null);
 
-        // TODO: 01.06.2021 add
+        // TODO: 01.06.2021 add subscriptions
         reevaluatingContext = false;
     }
 
-    private Object generateEffectiveGenome(JsonElement expsKeyStates, JsonObject genomes) {
-        // TODO: 01.06.2021 implement
+    private void clearActiveKeys() {
+        for (String s : activeKeys.keySet()) activeKeys.remove(s);
+    }
+
+    private void clearActiveVariants() {
+        for (String s : activeVariants.keySet()) activeVariants.remove(s);
+    }
+
+    private Object generateEffectiveGenome(JsonArray expsKeyStates, JsonObject genomes) {
+
+        JsonObject effectiveGenome = new JsonObject();
+        JsonArray activeEids = new JsonArray();
+
+        for (JsonElement expKeyStates : expsKeyStates) {
+            //JsonObject active = expKeyStates.getAsJsonObject().get("active").getAsJsonObject();
+            //JsonObject eid = expKeyStates.getAsJsonObject().get("eid").getAsJsonObject();
+
+//            if (genomes.has("eid") && active) {
+//
+//            }
+
+        }
+
         return null;
     }
 
+    // TODO: 30.06.2021 need a unit test
     private void setActiveAndEntryKeyStates(int version,
                                             EvolvContext evolvContext,
                                             JsonObject config,
                                             JsonArray allocations,
                                             KeyStates configKeyStates) {
-        // TODO: 01.06.2021 implement
 
-        Object results = evaluatePredicates(version, evolvContext, config);
+        JsonArray results = evaluatePredicates(version, evolvContext, config);
+
+        for (JsonElement result : results) {
+            //for (Map.Entry<String, JsonElement> entry : result.getAsJsonObject().entrySet()) {
+            String eid = "";
+            JsonObject expResults = null;
+            for (Map.Entry<String, JsonElement> entry : result.getAsJsonObject().entrySet()) {
+                eid = getEID(entry.getKey());
+                expResults = entry.getValue().getAsJsonObject();
+                break;
+            }
 
 
+
+                //String eid = getEID(entry.getKey());
+                //JsonObject expResults = entry.getValue().getAsJsonObject();
+                JsonObject expObject = null;
+                for (JsonElement experiment : configKeyStates.experiments) {
+                    if (experiment.getAsJsonObject().has("\"" + eid + "\"")) {
+                        expObject = experiment.getAsJsonObject();
+                        break;
+                    }
+                }
+                JsonArray expConfigKeyStates = expObject.get("\"" + eid + "\"").getAsJsonArray();
+                JsonObject activeKeyStates = new JsonObject();
+                JsonObject entryKeyStates = new JsonObject();
+
+                if (expConfigKeyStates.isJsonNull()) {
+                    return;
+                }
+
+                for (JsonElement expConfigKeyStateEntry : expConfigKeyStates) {
+
+                    JsonArray expConfigLoaded = expConfigKeyStateEntry.getAsJsonObject().get("loaded").getAsJsonArray();
+
+                    JsonObject loadedKeys = new JsonObject();
+                    for (JsonElement key : expConfigLoaded) {
+                        loadedKeys.addProperty(key.getAsString(), key.getAsString());
+                    }
+
+                    JsonObject newExpKeyStates = getActiveAndEntryExperimentKeyStates(expResults, loadedKeys);
+                    //active
+                    if (newExpKeyStates.get("active").getAsJsonObject().size() != 0) {
+                        for (String key : newExpKeyStates.get("active").getAsJsonObject().keySet()) {
+                            activeKeyStates.addProperty("active_" + key,key);
+                        }
+                    }
+                    //entry
+                    if (newExpKeyStates.get("entry").getAsJsonObject().size() != 0) {
+                        for (String key : newExpKeyStates.get("entry").getAsJsonObject().keySet()) {
+                            entryKeyStates.addProperty("entry_" + key,key);
+                        }
+                    }
+                }
+                expConfigKeyStates.add(activeKeyStates);
+                // TODO: 30.06.2021 add entryKeyStates
+                //expConfigKeyStates.set("entry", entryKeyStates);
+            //}
+        }
+    }
+
+    private String getEID(String key) {
+        return key.substring(0,key.indexOf("_"));
+    }
+
+    private JsonObject getActiveAndEntryExperimentKeyStates(JsonObject results, JsonObject keyStatesLoaded) {
+
+        JsonObject expKeyStates = new JsonObject();
+
+        JsonObject active = new JsonObject();
+        JsonObject entry = new JsonObject();
+
+        expKeyStates.add("active", active);
+        expKeyStates.add("entry", entry);
+
+        for (String key : keyStatesLoaded.keySet()) {
+
+            boolean activeKey = true;
+            //need to get "results.reject" and "results.entry"
+            for (Map.Entry<String,JsonElement> rejectedEntry : results.entrySet()) {
+                if(key.startsWith(rejectedEntry.getValue().getAsString())){
+                    activeKey = false;
+                    break;
+                }
+            }
+
+            if(activeKey){
+                active.addProperty(key, key);
+                // TODO: 01.07.2021 add entry logic
+            }
+            
+        }
+
+        return expKeyStates;
     }
 
     private void updateGenome(JsonArray value) {
@@ -405,7 +537,7 @@ class EvolvStoreImpl {
     }
 
     // TODO: 11.06.2021 need a unit test
-    private Object evaluatePredicates(int version, EvolvContext evolvContext, JsonElement config) {
+    private JsonArray evaluatePredicates(int version, EvolvContext evolvContext, JsonElement config) {
         JsonArray result = new JsonArray();
 
         if (!config.getAsJsonObject().has("_experiments"))
@@ -413,7 +545,7 @@ class EvolvStoreImpl {
                 return result;
         // TODO: 23.06.2021 need to create "context merge" between two contexts
         //JsonElement evaluableContext = evolvContext.resolve();
-        JsonElement evaluableContext = ((EvolvContextImpl)evolvContext).getRemoteContext();
+        JsonElement evaluableContext = ((EvolvContextImpl) evolvContext).getRemoteContext();
         Iterator<JsonElement> iterator = config
                 .getAsJsonObject()
                 .get("_experiments")
@@ -426,14 +558,19 @@ class EvolvStoreImpl {
             JsonObject evaluableConfig = exp.deepCopy();
             if (evaluableConfig.has("id")) evaluableConfig.remove("id");
 
+
+            JsonObject expResult = new JsonObject();
+            JsonObject disabled = new JsonObject();
+            JsonObject entry = new JsonObject();
+
+//            expResult.add("disabled", disabled);
+//            expResult.add("entry", entry);
+            expResult.add(exp.get("id").getAsString()+"_disabled", disabled);
+            expResult.add(exp.get("id").getAsString()+"_entry", entry);
+
             evaluateBranch(evaluableContext, evaluableConfig, "", disabled, entry);
 
-            JsonObject jsonObject = new JsonObject();
-
-            jsonObject.add(exp.get("id").getAsString(), disabled);
-            jsonObject.add(exp.get("id").getAsString(), entry);
-
-            result.add(jsonObject);
+            result.add(expResult);
         }
 
         return result;
@@ -443,36 +580,41 @@ class EvolvStoreImpl {
     private void evaluateBranch(JsonElement context,
                                 JsonElement config,
                                 String prefix,
-                                JsonArray disabled,
-                                JsonArray entry) {
+                                JsonObject disabled,
+                                JsonObject entry
+                                ) {
 
-        if (config.isJsonNull() || !config.isJsonObject()) {
-            return;
-        }
+        if (config.isJsonNull() || !config.isJsonObject()) return;
+
 
         if (config.getAsJsonObject().has("_predicate")) {
-            JsonElement result = evolvPredicates.evaluate(context, config.getAsJsonObject().get("_predicate"));
+            if (!config.getAsJsonObject().get("_predicate").isJsonNull()) {
+                JsonElement result = evolvPredicates.evaluate(context, config.getAsJsonObject().get("_predicate"));
 
-            if (result.getAsJsonObject().has("rejected")) {
-                disabled.add(prefix);
-                return;
+                if (result.getAsJsonObject().has("rejected")) {
+                    //here we see if the experiment rejected
+                    JsonObject rejected = result.getAsJsonObject().get("rejected").getAsJsonObject();
+
+                    if (rejected.get("rejected").getAsBoolean()) {
+                        disabled.addProperty("rejected_"+prefix, prefix);
+                        return;
+                    }
+                }
             }
         }
         if (config.getAsJsonObject().has("_is_entry_point")) {
-            if(config.getAsJsonObject().get("_is_entry_point").isJsonPrimitive()){
-                entry.add(prefix);
+            if (config.getAsJsonObject().get("_is_entry_point").getAsBoolean()) {
+                entry.addProperty("_is_entry_point", prefix);
             }
         }
 
         Set<String> keys = config.getAsJsonObject().keySet();
-        Iterator<String> iterator = keys.iterator();
 
-        while (iterator.hasNext()) {
-            String key = iterator.next();
+        for (String key : keys) {
             if (key.startsWith("_")) {
-                return;
+                continue;
             }
-            evaluateBranch(context, config.getAsJsonObject().get(key), prefix.isEmpty() ? prefix + '.' + key : key, disabled, entry);
+            evaluateBranch(context, config.getAsJsonObject().get(key), !prefix.isEmpty() ? prefix + '.' + key : key, disabled, entry);
         }
     }
 
@@ -480,7 +622,7 @@ class EvolvStoreImpl {
         return expLoadedList;
     }
 
-    private void getActiveKeys(){
+    private void getActiveKeys() {
         // TODO: 25.06.2021 implement
     }
 }
