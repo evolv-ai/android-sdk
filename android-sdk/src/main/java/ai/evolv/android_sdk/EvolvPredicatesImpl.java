@@ -20,7 +20,6 @@ class EvolvPredicatesImpl {
 
     private JsonObject result = new JsonObject();
 
-    // TODO: 11.06.2021 need a unit test
     public JsonElement evaluate(JsonElement context, JsonElement predicate) {
 
         JsonObject passed = new JsonObject();
@@ -44,21 +43,20 @@ class EvolvPredicatesImpl {
         JsonObject passedObject = result.get("passed").getAsJsonObject();
         JsonObject failedObject = result.get("failed").getAsJsonObject();
 
-        for (Map.Entry<String,JsonElement> entry : passedObject.entrySet()) {
+        for (Map.Entry<String, JsonElement> entry : passedObject.entrySet()) {
             result.get("touched").getAsJsonObject().add(entry.getKey(), entry.getValue());
         }
-        for (Map.Entry<String,JsonElement> entry : failedObject.entrySet()) {
+        for (Map.Entry<String, JsonElement> entry : failedObject.entrySet()) {
             result.get("touched").getAsJsonObject().add(entry.getKey(), entry.getValue());
         }
 
         return result;
     }
 
-    // TODO: 11.06.2021 need a unit test
-    private boolean evaluatePredicate(JsonElement user,
-                                      JsonObject query,
-                                      JsonObject passedRules,
-                                      JsonObject failedRules) {
+    boolean evaluatePredicate(JsonElement user,
+                              JsonObject query,
+                              JsonObject passedRules,
+                              JsonObject failedRules) {
 
         JsonArray rules = new JsonArray();
 
@@ -87,12 +85,11 @@ class EvolvPredicatesImpl {
         return combinator.equals("and");
     }
 
-    // TODO: 11.06.2021 need a unit test
     boolean evaluateRule(JsonElement user,
-                                 JsonObject query,
-                                 JsonObject rule,
-                                 JsonObject passedRules,
-                                 JsonObject failedRules) {
+                         JsonObject query,
+                         JsonObject rule,
+                         JsonObject passedRules,
+                         JsonObject failedRules) {
 
         boolean result;
 
@@ -108,19 +105,23 @@ class EvolvPredicatesImpl {
         // Any other rule is also a terminating branch in our recursion tree, so we add rule id to pass/fail rule set
         if (result) {
             if (rule.has("id")) passedRules.addProperty("id", query.get("id").getAsString());
-            if (rule.has("index")) passedRules.addProperty("index", rule.get("index").getAsString());
-            if (rule.has("field")) passedRules.addProperty("field", rule.get("field").getAsString());
+            if (rule.has("index"))
+                passedRules.addProperty("index", rule.get("index").getAsString());
+            if (rule.has("field"))
+                passedRules.addProperty("field", rule.get("field").getAsString());
 
         } else {
             if (rule.has("id")) failedRules.addProperty("id", query.get("id").getAsString());
-            if (rule.has("index")) failedRules.addProperty("index", rule.get("index").getAsString());
-            if (rule.has("field")) failedRules.addProperty("field", rule.get("field").getAsString());
+            if (rule.has("index"))
+                failedRules.addProperty("index", rule.get("index").getAsString());
+            if (rule.has("field"))
+                failedRules.addProperty("field", rule.get("field").getAsString());
         }
 
         return result;
     }
 
-     boolean evaluateFilter(JsonElement user, JsonObject rule) {
+    boolean evaluateFilter(JsonElement user, JsonObject rule) {
         JsonElement value = valueFromKey(user, rule.get("field").getAsString());
 
         if (value.isJsonNull()) {

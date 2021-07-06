@@ -17,6 +17,21 @@ public class EvolvPredicatesImplTest {
     private static final String rawContext_one = "{\"key\":{\"test\":\"test_value\"},\"experiments\":{\"allocations\":[{\"uid\":\"79211876_16178796481581112223331\",\"eid\":\"47d857cd5e\",\"cid\":\"5fa0fd38aae6:47d857cd5e\",\"ordinal\":0,\"group_id\":\"511ce252-92b5-4611-a00c-0e4120369c96\",\"excluded\":false}],\"exclusions\":[]}}";
     private static final String rawContext_two = "{\"signedin\":\"yes\",\"experiments\":{\"allocations\":[{\"uid\":\"79211876_16178796481581112223331\",\"eid\":\"47d857cd5e\",\"cid\":\"5fa0fd38aae6:47d857cd5e\",\"ordinal\":0,\"group_id\":\"511ce252-92b5-4611-a00c-0e4120369c96\",\"excluded\":false}],\"exclusions\":[]}}";
 
+    //testEvaluatePredicate
+    private static final String rawUser_one = "{\"signedin\":\"yes\",\"Age\":26,\"Sex\":\"female\",\"view\":\"home\",\"experiments\":{\"allocations\":{\"allocs\":{\"uid\":\"79211876_16178796481581112223331\",\"eid\":\"47d857cd5e\",\"cid\":\"5fa0fd38aae6:47d857cd5e\",\"ordinal\":0,\"group_id\":\"511ce252-92b5-4611-a00c-0e4120369c96\",\"excluded\":false}},\"exclusions\":{}}}";
+    private static final String rawUser_two = "{\"Age\":26,\"Sex\":\"female\",\"view\":\"home\",\"experiments\":{\"allocations\":{\"allocs\":{\"uid\":\"79211876_16178796481581112223331\",\"eid\":\"47d857cd5e\",\"cid\":\"5fa0fd38aae6:47d857cd5e\",\"ordinal\":0,\"group_id\":\"511ce252-92b5-4611-a00c-0e4120369c96\",\"excluded\":false}},\"exclusions\":{}}}";
+    private static final String rawQuery_one = "{\"id\":174,\"combinator\":\"and\",\"rules\":[{\"field\":\"Age\",\"operator\":\"equal\",\"value\":\"26\"},{\"combinator\":\"or\",\"rules\":[{\"field\":\"Sex\",\"operator\":\"equal\",\"value\":\"female\"},{\"field\":\"Student\",\"operator\":\"contains\",\"value\":\"High_school\"}]}]}";
+    private static final String rawQuery_two = "{\"id\":156,\"combinator\":\"and\",\"rules\":[{\"field\":\"signedin\",\"operator\":\"equal\",\"value\":\"yes\"}]}";
+
+    //testEvaluate
+    private static final String rawContext_three = "{\"Age\":26,\"Sex\":\"female\",\"view\":\"home\",\"experiments\":{\"allocations\":{\"allocs\":{\"uid\":\"79211876_16178796481581112223331\",\"eid\":\"47d857cd5e\",\"cid\":\"5fa0fd38aae6:47d857cd5e\",\"ordinal\":0,\"group_id\":\"511ce252-92b5-4611-a00c-0e4120369c96\",\"excluded\":false}},\"exclusions\":{}}}";
+    private static final String rawPredicate_one = "{\"id\":174,\"combinator\":\"and\",\"rules\":[{\"field\":\"Age\",\"operator\":\"equal\",\"value\":\"26\"},{\"combinator\":\"or\",\"rules\":[{\"field\":\"Sex\",\"operator\":\"equal\",\"value\":\"female\"},{\"field\":\"Student\",\"operator\":\"contains\",\"value\":\"High_school\"}]}]}";
+    private static final String rawPredicate_two = "{\"combinator\":\"and\",\"rules\":[{\"field\":\"view\",\"operator\":\"equal\",\"value\":\"home\"}]}";
+    private static final String rawPredicate_three = "{\"combinator\":\"and\",\"rules\":[{\"field\":\"view\",\"operator\":\"equal\",\"value\":\"next\"}]}";
+    private static final String rawPredicate_four = "{\"id\":156,\"combinator\":\"and\",\"rules\":[{\"field\":\"signedin\",\"operator\":\"equal\",\"value\":\"yes\"}]}";
+    private static final String rawPredicate_five = "{\"id\":165,\"combinator\":\"and\",\"rules\":[{\"field\":\"authenticated\",\"operator\":\"equal\",\"value\":\"false\"},{\"field\":\"text\",\"operator\":\"contains\",\"value\":\"cancel\"}]}";
+
+
     JsonObject parseRawJsonObject(String raw) {
         JsonParser parser = new JsonParser();
         return parser.parse(raw).getAsJsonObject();
@@ -126,5 +141,60 @@ public class EvolvPredicatesImplTest {
 
         Assert.assertFalse(passed);
 
+    }
+
+    @Test
+    public void testEvaluatePredicate() {
+
+        EvolvPredicatesImpl predicates = new EvolvPredicatesImpl();
+
+        JsonElement user_one = parseRawJsonElement(rawUser_one);
+        JsonElement user_two = parseRawJsonElement(rawUser_two);
+        JsonObject query_one = parseRawJsonObject(rawQuery_one);
+        JsonObject query_two = parseRawJsonObject(rawQuery_two);
+
+        JsonObject passedRules = new JsonObject();
+        JsonObject failedRules = new JsonObject();
+
+        boolean result_one = predicates.evaluatePredicate(user_one,query_one,passedRules,failedRules);
+        boolean result_two = predicates.evaluatePredicate(user_two,query_two,passedRules,failedRules);
+
+        Assert.assertTrue(result_one);
+        Assert.assertFalse(result_two);
+    }
+
+    @Test
+    public void testEvaluate() {
+
+        JsonElement result_template_one = parseRawJsonElement("{\"passed\":{\"field\":\"Sex\"},\"failed\":{},\"touched\":{\"field\":\"Sex\"},\"rejected\":{\"rejected\":false}}");
+        JsonElement result_template_two = parseRawJsonElement("{\"passed\":{\"field\":\"view\"},\"failed\":{},\"touched\":{\"field\":\"view\"},\"rejected\":{\"rejected\":false}}");
+        JsonElement result_template_three = parseRawJsonElement("{\"passed\":{},\"failed\":{\"field\":\"view\"},\"touched\":{\"field\":\"view\"},\"rejected\":{\"rejected\":true}}");
+        JsonElement result_template_four = parseRawJsonElement("{\"passed\":{},\"failed\":{\"field\":\"signedin\"},\"touched\":{\"field\":\"signedin\"},\"rejected\":{\"rejected\":true}}");
+        JsonElement result_template_five = parseRawJsonElement("{\"passed\":{},\"failed\":{\"field\":\"authenticated\"},\"touched\":{\"field\":\"authenticated\"},\"rejected\":{\"rejected\":true}}");
+
+        EvolvPredicatesImpl predicates = new EvolvPredicatesImpl();
+
+        JsonElement context = parseRawJsonElement(rawContext_three);
+
+        JsonElement predicate_one = parseRawJsonElement(rawPredicate_one);
+        JsonElement predicate_two = parseRawJsonElement(rawPredicate_two);
+        JsonElement predicate_three = parseRawJsonElement(rawPredicate_three);
+        JsonElement predicate_four = parseRawJsonElement(rawPredicate_four);
+        JsonElement predicate_five = parseRawJsonElement(rawPredicate_five);
+
+        JsonElement result_one = predicates.evaluate(context,predicate_one);
+        Assert.assertEquals(result_template_one, result_one);
+
+        JsonElement result_two = predicates.evaluate(context,predicate_two);
+        Assert.assertEquals(result_template_two, result_two);
+
+        JsonElement result_three = predicates.evaluate(context,predicate_three);
+        Assert.assertEquals(result_template_three, result_three);
+
+        JsonElement result_four = predicates.evaluate(context,predicate_four);
+        Assert.assertEquals(result_template_four, result_four);
+
+        JsonElement result_five = predicates.evaluate(context,predicate_five);
+        Assert.assertEquals(result_template_five, result_five);
     }
 }
