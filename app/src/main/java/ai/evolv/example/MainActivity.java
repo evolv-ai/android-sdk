@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 import java.util.concurrent.TimeUnit;
 
@@ -48,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
                 //UserId("79211876_16178796481581112223337") - //"Default layout"; "click here now!"
                 //UserId("79211876_16178796481581112223339") - //"Default layout"; "best button"
 
+        setContentView(R.layout.layout_default);
         client.subscribe("next.layout", "Default Layout", layoutOption -> {
             runOnUiThread(() -> {
                 switch (layoutOption) {
@@ -85,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
         evolvContext.set("Age","26",false);
         evolvContext.set("Sex","female",false);
         evolvContext.set("view","home",false);
-//        evolvContext.set("view","next",false);
+        evolvContext.set("view","next",false);
 
         // TODO: 02.06.2021 allow adding third or more orders of keys to the remote context
         //evolvContext.set("key.test.test1","test_value",false);
@@ -93,9 +95,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void pressHome(View view) {
-        Toast convMessage = Toast.makeText(this, "Сlicked",
-                Toast.LENGTH_SHORT);
-        convMessage.show();
-    }
 
+        JsonObject activeKeys = client.getActiveKeys();
+        JsonObject activeKeysPrefix = client.getActiveKeys("home");
+        Log.d("activeKeys_", "activeKeys: " + activeKeys);
+        Log.d("activeKeys_", "activeKeysPrefix: " + activeKeysPrefix);
+        Log.d("activeKeys_", "isActive: " + client.isActive("cta_text"));
+        Log.d("activeKeys_", "GET: " + client.get("home"));
+
+    }
 }

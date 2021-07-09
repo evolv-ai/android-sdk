@@ -1,14 +1,15 @@
 package ai.evolv.android_sdk.evolvinterface;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 import java.util.Map;
 
 public interface EvolvContext {
 
     void initialize(String uid,
-                    Map<String, Object> remoteContext,
-                    Map<String, Object> localContext);
+                    JsonObject remoteContext,
+                    JsonObject localContext);
 
 
     /**

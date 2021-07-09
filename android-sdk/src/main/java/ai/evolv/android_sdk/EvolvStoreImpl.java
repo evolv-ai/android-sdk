@@ -2,7 +2,6 @@ package ai.evolv.android_sdk;
 
 import android.util.Log;
 
-import com.google.common.base.Strings;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
@@ -10,22 +9,18 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.google.gson.JsonPrimitive;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
-import java.util.regex.Pattern;
 
 import ai.evolv.android_sdk.evolvinterface.EvolvContext;
 import ai.evolv.android_sdk.evolvinterface.EvolvInvocation;
@@ -100,7 +95,7 @@ class EvolvStoreImpl {
 
     private class KeyStates {
 
-        Set needed = new HashSet();
+        Set<String> needed = new HashSet<String>();
         Set requested = new HashSet();
         JsonObject experiments = new JsonObject();
     }
@@ -139,6 +134,29 @@ class EvolvStoreImpl {
     }
 
     void pull() {
+        if (configKeyStates.needed.size() != 0 || version == DEFAULT_VERSION) {
+
+            List<Object> requestedKeys = new ArrayList<>(configKeyStates.needed);
+            configKeyStates.needed.clear();
+
+            // fetch configuration asynchronously
+            fetchConfiguration(requestedKeys);
+            waitForIt.emit(evolvContext, CONFIG_REQUEST_SENT, requestedKeys);
+        }
+
+        if (genomeKeyStates.needed.size() != 0 || version == DEFAULT_VERSION) {
+
+            List<Object> requestedKeys = new ArrayList<>(genomeKeyStates.needed);
+            genomeKeyStates.needed.clear();
+
+            // fetch and reconcile allocations asynchronously
+            fetchAllocations();
+            waitForIt.emit(evolvContext, GENOME_REQUEST_SENT, requestedKeys);
+
+        }
+    }
+
+    void pull(boolean immediate) {
         if (configKeyStates.needed.size() != 0 || version == DEFAULT_VERSION) {
 
             List<Object> requestedKeys = new ArrayList<>(configKeyStates.needed);
@@ -213,7 +231,6 @@ class EvolvStoreImpl {
         }, MoreExecutors.directExecutor());
     }
 
-
     private void update(boolean configRequest, List<Object> requestedKeys, JsonElement value) {
 
         KeyStates keyStates = configRequest ? configKeyStates : genomeKeyStates;
@@ -237,7 +254,7 @@ class EvolvStoreImpl {
     }
 
     // TODO: 11.06.2021 need a unit test
-    private void reevaluateContext() {
+    void reevaluateContext() {
 
         if (config.isJsonNull()) {
             return;
@@ -255,8 +272,8 @@ class EvolvStoreImpl {
             activeEids = result.get("activeEids").getAsString();
         }
 
-        clearActiveKeys();
-        clearActiveVariants();
+        clearActiveKeysStore();
+        clearActiveVariantsStore();
 
         for (Map.Entry<String, JsonElement> expKeyStates : configKeyStates.experiments.entrySet()) {
             JsonObject active = expKeyStates.getValue().getAsJsonObject().get("active").getAsJsonObject();
@@ -264,7 +281,7 @@ class EvolvStoreImpl {
             for (Map.Entry<String, JsonElement> activeKey : active.getAsJsonObject().entrySet()) {
                 activeKeys.addProperty(activeKey.getKey(), activeKey.getValue().getAsString());
 
-                if (effectiveGenome != null ) {
+                if (effectiveGenome != null) {
                     JsonElement pruned = helper.prune(effectiveGenome, active);
 
                     for (String key : pruned.getAsJsonObject().keySet()) {
@@ -286,11 +303,19 @@ class EvolvStoreImpl {
         reevaluatingContext = false;
     }
 
-    private void clearActiveKeys() {
+    private void clearActiveKeysStore() {
         for (String s : activeKeys.keySet()) activeKeys.remove(s);
     }
 
-    private void clearActiveVariants() {
+    private void clearActiveKeysStorePrefix(String prefix) {
+        for (String key : activeKeys.keySet()) {
+           if(key.startsWith(prefix)){
+               activeKeys.remove(key);
+           }
+        }
+    }
+
+    private void clearActiveVariantsStore() {
         for (String s : activeVariants.keySet()) activeVariants.remove(s);
     }
 
@@ -368,6 +393,7 @@ class EvolvStoreImpl {
                     activeKeyStates.addProperty("active_" + key, key);
                 }
             }
+
             //entry
             if (newExpKeyStates.get("entry").getAsJsonObject().size() != 0) {
                 for (String key : newExpKeyStates.get("entry").getAsJsonObject().keySet()) {
@@ -655,7 +681,95 @@ class EvolvStoreImpl {
         return expLoadedList;
     }
 
-    private void getActiveKeys() {
-        // TODO: 25.06.2021 implement
+    // TODO: 07.07.2021 need to test+
+    JsonObject getActiveKeys(String prefix) {
+        JsonObject result = new JsonObject();
+
+        for (Map.Entry<String, JsonElement> key : activeKeys.entrySet()) {
+            if (hasPrefix(key.getValue().getAsString(), prefix)) {
+                result.addProperty("current_" + key.getKey(), key.getValue().getAsString());
+            }
+        }
+        return result;
     }
+
+    // TODO: 07.07.2021 need to test+
+    JsonObject getActiveKeys() {
+        JsonObject result = new JsonObject();
+
+        for (Map.Entry<String, JsonElement> key : activeKeys.entrySet()) {
+            result.addProperty("current_" + key.getKey(), key.getValue().getAsString());
+        }
+        return result;
+    }
+
+    private boolean hasPrefix(String key, String prefix) {
+        return key.startsWith(prefix);
+    }
+
+    // TODO: 07.07.2021 need to test?
+    void preload(ArrayList<String> prefixes) {
+        boolean configOnly = false;
+        boolean immediate = false;
+
+        configKeyStates.needed.addAll(prefixes);
+        if (!configOnly) {
+            genomeKeyStates.needed.addAll(prefixes);
+        }
+
+        pull(immediate);
+    }
+
+    // TODO: 07.07.2021 need to test?
+    void preload(ArrayList<String> prefixes, boolean configOnly) {
+        boolean immediate = false;
+
+        configKeyStates.needed.addAll(prefixes);
+        if (!configOnly) {
+            genomeKeyStates.needed.addAll(prefixes);
+        }
+        pull(immediate);
+    }
+
+    // TODO: 07.07.2021 need to test?
+    void preload(ArrayList<String> prefixes, boolean configOnly, boolean immediate) {
+
+        configKeyStates.needed.addAll(prefixes);
+        if (!configOnly) {
+            genomeKeyStates.needed.addAll(prefixes);
+        }
+
+        pull(immediate);
+    }
+
+    boolean getValueActive(String key) {
+        for (Map.Entry<String, JsonElement> entry : activeKeys.entrySet()) {
+            if (entry.getValue().getAsString().equals(key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // TODO: 07.07.2021 need to test!-
+    JsonElement getConfig(String key) {
+        return helper.getValueForKey(key, config);
+    }
+
+    // TODO: 07.07.2021 need to test!-
+    JsonElement getValue(String key) {
+        return helper.getValueForKey(key, genomes);
+    }
+
+    // TODO: 07.07.2021 need to test?
+    void clearActiveKeys(String prefix) {
+        clearActiveKeysStorePrefix(prefix);
+    }
+
+    // TODO: 07.07.2021 need to test?
+    void clearActiveKeys() {
+        clearActiveKeysStore();
+    }
+
+
 }

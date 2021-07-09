@@ -17,6 +17,8 @@ import java.net.URL;
 
 import ai.evolv.android_sdk.evolvinterface.EvolvAllocationStore;
 import ai.evolv.android_sdk.httpclients.HttpClient;
+import okhttp3.FormBody;
+import okhttp3.RequestBody;
 
 
 class Allocator {
@@ -71,8 +73,13 @@ class Allocator {
     }
 
     ListenableFuture<String> fetchAllocations() {
+
+        RequestBody formBody = new FormBody.Builder()
+                .add("uid", participant.getUserId())
+                .build();
+
         ListenableFuture<String> responseFuture = httpClient.post(createAllocationsUrl(),
-                participant.getUserId());
+                formBody);
         return responseFuture;
     }
 

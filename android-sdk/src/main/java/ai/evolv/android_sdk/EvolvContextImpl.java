@@ -44,8 +44,8 @@ class EvolvContextImpl implements EvolvContext {
 
     @Override
     public void initialize(String uid,
-                           Map<String, Object> remoteContext,
-                           Map<String, Object> localContext) {
+                           JsonObject remoteContext,
+                           JsonObject localContext) {
 
         if (initialized) {
             try {

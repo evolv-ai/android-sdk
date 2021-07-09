@@ -1,7 +1,6 @@
 package ai.evolv.android_sdk;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.slf4j.Logger;
@@ -13,12 +12,10 @@ import java.util.List;
 import java.util.Map;
 
 import ai.evolv.android_sdk.evolvinterface.EvolvAction;
-import ai.evolv.android_sdk.evolvinterface.EvolvAllocationStore;
 import ai.evolv.android_sdk.evolvinterface.EvolvClient;
 import ai.evolv.android_sdk.evolvinterface.EvolvContext;
 import ai.evolv.android_sdk.evolvinterface.EvolvInvocation;
 import ai.evolv.android_sdk.exceptions.EvolvKeyError;
-import ai.evolv.android_sdk.generics.GenericClass;
 
 import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_INITIALIZED;
 import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_VALUE_ADDED;
@@ -55,14 +52,15 @@ public class EvolvClientImpl implements EvolvClient {
         this.waitForIt = waitForIt;
         this.evolvStore = new EvolvStoreImpl(config, participant, waitForIt);
         this.evolvContext = new EvolvContextImpl(evolvStore, waitForIt);
-        this.contextBeacon = config.isAnalytics() ? new EvolvEmitter(config.getEndpoint()
-                + '/' + config.getEnvironmentId() + "/data",
-                evolvContext,
-                evolvConfig.isBufferEvents()) : null;
-        this.eventBeacon = new EvolvEmitter(config.getEndpoint()
-                + '/' + config.getEnvironmentId() + "/events",
-                evolvContext,
-                evolvConfig.isBufferEvents());
+//        this.contextBeacon = config.isAnalytics() ? new EvolvEmitter(config.getEndpoint()
+//                + '/' + config.getEnvironmentId() + "/data",
+//                evolvContext,
+//                evolvConfig.isBufferEvents()) : null;
+
+        this.contextBeacon = config.isAnalytics() ? new EvolvEmitter(config,
+                evolvContext, "data",participant) : null;
+        // TODO: 09.07.2021 uncomment
+        this.eventBeacon = null;//new EvolvEmitter(config, evolvContext, "events",participant);
         //the first time we initialize the context
         initialize(participant.getUserId(), null, null);
     }
@@ -71,8 +69,9 @@ public class EvolvClientImpl implements EvolvClient {
         return evolvContext;
     }
 
+    // TODO: 07.07.2021 need to test
     @Override
-    public void initialize(String uid, Map<String, Object> remoteContext, Map<String, Object> localContext) {
+    public void initialize(String uid, JsonObject remoteContext, JsonObject localContext) {
         if (initialized) {
             try {
                 throw new EvolvKeyError("Evolv: Client is already initialized");
@@ -155,8 +154,8 @@ public class EvolvClientImpl implements EvolvClient {
     }
 
     @Override
-    public <T> T get(String key, T defaultValue) {
-        return null;
+    public JsonElement get(String key) {
+        return evolvStore.getValue(key);
     }
 
     @Override
@@ -172,8 +171,52 @@ public class EvolvClientImpl implements EvolvClient {
     }
 
     @Override
-    public <T> T getActiveKeys(String prefix, T defaultValue) {
-        return null;
+    public JsonObject getActiveKeys(String prefix) {
+       return  evolvStore.getActiveKeys(prefix);
     }
 
+    @Override
+    public JsonObject getActiveKeys() {
+        return evolvStore.getActiveKeys();
+    }
+
+    @Override
+    public void reevaluateContext() {
+        evolvStore.reevaluateContext();
+    }
+
+    @Override
+    public boolean isActive(String key) {
+        return evolvStore.getValueActive(key);
+    }
+
+    @Override
+    public void preload(ArrayList<String> prefixes, boolean configOnly, boolean immediate) {
+        evolvStore.preload(prefixes, configOnly, immediate);
+    }
+
+    @Override
+    public void preload(ArrayList<String> prefixes, boolean configOnly) {
+        evolvStore.preload(prefixes, configOnly);
+    }
+
+    @Override
+    public void preload(ArrayList<String> prefixes) {
+        evolvStore.preload(prefixes);
+    }
+
+    @Override
+    public JsonElement getConfig(String key) {
+        return evolvStore.getConfig(key);
+    }
+
+    @Override
+    public void clearActiveKeys(String prefix) {
+        evolvStore.clearActiveKeys(prefix);
+    }
+
+    @Override
+    public void clearActiveKeys() {
+        evolvStore.clearActiveKeys();
+    }
 }

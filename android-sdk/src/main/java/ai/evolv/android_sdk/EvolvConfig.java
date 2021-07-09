@@ -9,7 +9,7 @@ public class EvolvConfig {
     static final String PROD_DOMAIN = "participants.evolv.ai";
     static final String TEST_DOMAIN = "participants-stg.evolv.ai";
     static final String DEFAULT_DOMAIN = PROD_DOMAIN;
-    static final String DEFAULT_ENDPOINT = "'https://participants.evolv.ai/') + 'v'";
+    static final String DEFAULT_ENDPOINT = "https://participants.evolv.ai/v";
     static final int DEFAULT_VERSION = 1;
 
     private final String httpScheme;
