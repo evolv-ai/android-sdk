@@ -136,7 +136,11 @@ class EvolvStoreImpl {
     void pull() {
         if (configKeyStates.needed.size() != 0 || version == DEFAULT_VERSION) {
 
-            List<Object> requestedKeys = new ArrayList<>(configKeyStates.needed);
+            JsonArray requestedKeys = new JsonArray();
+
+            for (String requestedKey : configKeyStates.needed) {
+                requestedKeys.add(requestedKey);
+            }
             configKeyStates.needed.clear();
 
             // fetch configuration asynchronously
@@ -146,11 +150,15 @@ class EvolvStoreImpl {
 
         if (genomeKeyStates.needed.size() != 0 || version == DEFAULT_VERSION) {
 
-            List<Object> requestedKeys = new ArrayList<>(genomeKeyStates.needed);
+            JsonArray requestedKeys = new JsonArray();
+
+            for (String requestedKey : genomeKeyStates.needed) {
+                requestedKeys.add(requestedKey);
+            }
             genomeKeyStates.needed.clear();
 
             // fetch and reconcile allocations asynchronously
-            fetchAllocations();
+            fetchAllocations(requestedKeys);
             waitForIt.emit(evolvContext, GENOME_REQUEST_SENT, requestedKeys);
 
         }
@@ -159,7 +167,12 @@ class EvolvStoreImpl {
     void pull(boolean immediate) {
         if (configKeyStates.needed.size() != 0 || version == DEFAULT_VERSION) {
 
-            List<Object> requestedKeys = new ArrayList<>(configKeyStates.needed);
+            JsonArray requestedKeys = new JsonArray();
+
+            for (String requestedKey : configKeyStates.needed) {
+                requestedKeys.add(requestedKey);
+            }
+
             configKeyStates.needed.clear();
 
             // fetch configuration asynchronously
@@ -169,17 +182,22 @@ class EvolvStoreImpl {
 
         if (genomeKeyStates.needed.size() != 0 || version == DEFAULT_VERSION) {
 
-            List<Object> requestedKeys = new ArrayList<>(genomeKeyStates.needed);
+            JsonArray requestedKeys = new JsonArray();
+
+            for (String requestedKey : genomeKeyStates.needed) {
+                requestedKeys.add(requestedKey);
+            }
+
             genomeKeyStates.needed.clear();
 
             // fetch and reconcile allocations asynchronously
-            fetchAllocations();
+            fetchAllocations(requestedKeys);
             waitForIt.emit(evolvContext, GENOME_REQUEST_SENT, requestedKeys);
 
         }
     }
 
-    private void fetchAllocations() {
+    private void fetchAllocations(JsonArray requestedKeys) {
         ListenableFuture<String> responseFutureAllocations = allocator.fetchAllocations();
         SettableFuture<JsonArray> setFutureAllocations = SettableFuture.create();
 
@@ -187,8 +205,6 @@ class EvolvStoreImpl {
             @Override
             public void run() {
                 try {
-
-                    List<Object> requestedKeys = new ArrayList<>();
                     // TODO: use a non-depreciated method "JsonParser"
                     JsonParser parser = new JsonParser();
                     JsonArray allocations = parser.parse(responseFutureAllocations.get()).getAsJsonArray();
@@ -206,7 +222,7 @@ class EvolvStoreImpl {
         }, MoreExecutors.directExecutor());
     }
 
-    private void fetchConfiguration(List<Object> requestedKeys) {
+    private void fetchConfiguration(JsonArray requestedKeys) {
         ListenableFuture<String> responseFutureConfiguration = allocator.fetchConfiguration();
         SettableFuture<JsonObject> setFutureConfiguration = SettableFuture.create();
 
@@ -231,7 +247,7 @@ class EvolvStoreImpl {
         }, MoreExecutors.directExecutor());
     }
 
-    private void update(boolean configRequest, List<Object> requestedKeys, JsonElement value) {
+    private void update(boolean configRequest, JsonArray requestedKeys, JsonElement value) {
 
         KeyStates keyStates = configRequest ? configKeyStates : genomeKeyStates;
         // TODO: 27.05.2021 to figure it out -> requestedKeys.forEach(keyStates.requested.delete.bind(keyStates.requested));
@@ -309,9 +325,9 @@ class EvolvStoreImpl {
 
     private void clearActiveKeysStorePrefix(String prefix) {
         for (String key : activeKeys.keySet()) {
-           if(key.startsWith(prefix)){
-               activeKeys.remove(key);
-           }
+            if (key.startsWith(prefix)) {
+                activeKeys.remove(key);
+            }
         }
     }
 

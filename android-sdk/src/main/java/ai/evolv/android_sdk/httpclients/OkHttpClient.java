@@ -112,7 +112,7 @@ public class OkHttpClient implements HttpClient {
     public ListenableFuture<String> post(String url, RequestBody requestBody) {
         return postStringSettableFuture(url, httpClient, requestBody);
     }
-    
+
     private static SettableFuture<String> postStringSettableFuture(
             String url, okhttp3.OkHttpClient httpClient, RequestBody requestBody) {
         SettableFuture<String> responseFuture = SettableFuture.create();

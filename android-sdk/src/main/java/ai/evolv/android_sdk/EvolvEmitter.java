@@ -29,17 +29,16 @@ import okhttp3.RequestBody;
 
 class EvolvEmitter {
 
-    private Pattern pattern = Pattern.compile("-?\\\\d+");
+    public final int BATCH_SIZE = 25;
 
     private String endpoint;
     private EvolvContext evolvContext;
     private boolean blockTransmit;
-    private JsonObject messages = new JsonObject();
+    private JsonArray messages = new JsonArray();
     private int timer;
     private final Handler handler;
     private EvolvConfig evolvConfig;
     private EvolvParticipant participant;
-    private Matcher endpointMatch;
     // TODO: 09.07.2021  
     //private boolean v1Events = endpointMatch && endpointMatch[1] === 'v1' && endpointMatch[2] === 'events';
 
@@ -50,16 +49,16 @@ class EvolvEmitter {
         this.participant = participant;
         this.blockTransmit = evolvConfig.isBufferEvents();
         handler = new Handler(Looper.getMainLooper());
-        endpointMatch = pattern.matcher(endpoint);
         // TODO: 09.07.2021 remove (it's for testing)
-        send(endpoint,"",false);
+        //send(endpoint,"",false);
+        // TODO: 09.07.2021 remove (it's for testing)
+        //transmit();
     }
 
-    boolean send(String url, String data, boolean sync) {
-
+    boolean send(String url, JsonObject data, boolean sync) {
 
         MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-        // TODO: use a non-depreciated method "create"
+        // TODO: need to create request body from messages
         RequestBody formBody = RequestBody.create(JSON, "{\n" +
                 "                \"uid\": \"79211876_161787964815811122233309\",\n" +
                 "                \"messages\":[{\"type\":\"context.value.added\",\n" +
@@ -68,7 +67,7 @@ class EvolvEmitter {
                 "\n" +
                 "}");
 
-        ListenableFuture<String> responseFuture = evolvConfig.getHttpClient().post(url,formBody);
+        ListenableFuture<String> responseFuture = evolvConfig.getHttpClient().post(url, formBody);
 
         responseFuture.addListener(new Runnable() {
             @Override
@@ -91,52 +90,99 @@ class EvolvEmitter {
     }
 
 
+    void emit(String type, JsonObject payload, boolean flush) {
+        JsonObject messagesObject = new JsonObject();
 
-    void emit(String type, Map<String, List<Object>> payload, boolean flush){
-        // TODO: use a non-depreciated method "JsonParser"
-        JsonParser parser = new JsonParser();
-        JsonObject payloadObject = parser.parse(payload.toString()).getAsJsonObject();
+        messagesObject.addProperty("type", type);
+        messagesObject.add("payload", payload);
+        messagesObject.addProperty("sid", "sid_remove_from_server");
+        messagesObject.addProperty("timestamp", new Date().getTime());
 
-        messages.addProperty("type",type);
-        messages.add("payload",payloadObject);
-        messages.addProperty("timestamp",new Date().getTime());
+        messages.add(messagesObject);
 
         if (flush) {
             transmit();
             return;
         }
 
-        handler.postDelayed(this::transmit, 100);
+        transmit();
     }
 
     private void transmit() {
 
         boolean sync = false;
-        if (messages.size() != 0 || blockTransmit) {
+        if (messages.size() == 0 || blockTransmit) {
             return;
         }
 
-        JsonObject batch = messages.deepCopy();
+        JsonArray batch = messages.deepCopy();
         clearMessages();
 
-        if(timer != 0){
+        if (timer != 0) {
             clearTimeout();
         }
 // TODO: 09.07.2021  
-//        if (v1Events) {
-//
-//        }else{
-//
-//        }
+        if (v1Events()) {
+
+            for (JsonElement message : batch) {
+                JsonObject editedMessage = message.getAsJsonObject();
+                if (editedMessage.has("payload")) {
+                    editedMessage.add("payload", editedMessage.get("payload"));
+                }
+
+                if (editedMessage.has("type")) {
+                    editedMessage.add("type", editedMessage.get("type"));
+                }
+
+                send(endpoint, editedMessage, sync);
+            }
+
+        } else {
+
+            while (true) {
+                // TODO: 12.07.2021 copy a part of array
+                JsonArray smallBatch = batch.deepCopy();//.slice(0, BATCH_SIZE);
+                if (smallBatch.size() == 0) {
+                    break;
+                }
 
 
+                //send(endpoint,smallBatch,sync);
+                break;
+
+                // TODO: 12.07.2021 figure it out
+//                if (!send(endpoint, JSON.stringify(wrapMessages(smallBatch)), sync)) {
+//                    messages = batch
+//                    console.error('Evolv: Unable to send analytics beacon');
+//                    break;
+//                }
+//
+//                batch = batch.slice(BATCH_SIZE);
+            }
+
+        }
+
+        if (messages.size() != 0) {
+            //handler.postDelayed(this::transmit, 1000);
+        }
+
+    }
+
+
+    private boolean v1Events() {
+        return endpoint.contains("/v1/") && endpoint.contains("events");
     }
 
     private void clearTimeout() {
         timer = 0;
     }
 
+    private void flush() {
+        transmit();
+    }
+
     private void clearMessages() {
-        for (String key : messages.keySet()) messages.remove(key);
+        // TODO: 12.07.2021
+        //for (String key : messages.keySet()) messages.remove(key);
     }
 }

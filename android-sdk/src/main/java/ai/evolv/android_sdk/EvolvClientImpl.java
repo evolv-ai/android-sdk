@@ -95,49 +95,44 @@ public class EvolvClientImpl implements EvolvClient {
 
         if (evolvConfig.isAnalytics()) {
 
-            waitForIt.waitFor(evolvContext, CONTEXT_INITIALIZED, (EvolvInvocation<Object>) type -> {
-                Map<String, List<Object>> payloadMap = new LinkedHashMap<>();
-                //todo create list which will include all payload parameters from "waitforit"
-                payloadMap.put(CONTEXT_INITIALIZED, new ArrayList<>());
-
+            waitForIt.waitFor(evolvContext, CONTEXT_INITIALIZED, (EvolvInvocation<JsonObject>) type -> {
+                JsonObject payloadMap = type;
                 contextBeacon.emit(CONTEXT_INITIALIZED, payloadMap, false);
             });
 
-            waitForIt.waitFor(evolvContext, CONTEXT_VALUE_ADDED, (EvolvInvocation<Object>) type -> {
-                // TODO: 04.06.2021 note: need to get "local" from anonymous function
-                boolean local = true;
-                if (local) {
-                    return;
+            waitForIt.waitFor(evolvContext, CONTEXT_VALUE_ADDED, (EvolvInvocation<JsonObject>) type -> {
+                if(type.has("local")){
+                    if(type.get("local").getAsBoolean()){
+                        return;
+                    }
                 }
-                Map<String, List<Object>> payloadMap = new LinkedHashMap<>();
-                //todo create list which will include all payload parameters from "waitforit"
-                payloadMap.put(CONTEXT_VALUE_ADDED, new ArrayList<>());
+                JsonObject payloadMap = type;
 
                 contextBeacon.emit(CONTEXT_VALUE_ADDED, payloadMap, false);
             });
 
-            waitForIt.waitFor(evolvContext, CONTEXT_VALUE_CHANGED, (EvolvInvocation<Object>) type -> {
-                // TODO: 04.06.2021 note: need to get "local" from anonymous function
-                boolean local = true;
-                if (local) {
-                    return;
+            waitForIt.waitFor(evolvContext, CONTEXT_VALUE_CHANGED, (EvolvInvocation<JsonObject>) type -> {
+
+                if(type.has("local")){
+                    if(type.get("local").getAsBoolean()){
+                        return;
+                    }
                 }
-                Map<String, List<Object>> payloadMap = new LinkedHashMap<>();
-                //todo create list which will include all payload parameters from "waitforit"
-                payloadMap.put(CONTEXT_VALUE_CHANGED, new ArrayList<>());
+
+                JsonObject payloadMap = type;
 
                 contextBeacon.emit(CONTEXT_VALUE_CHANGED, payloadMap, false);
             });
 
-            waitForIt.waitFor(evolvContext, CONTEXT_VALUE_REMOVED, (EvolvInvocation<Object>) type -> {
-                // TODO: 04.06.2021 note: need to get "local" from anonymous function
-                boolean local = true;
-                if (local) {
-                    return;
+            waitForIt.waitFor(evolvContext, CONTEXT_VALUE_REMOVED, (EvolvInvocation<JsonObject>) type -> {
+
+                if(type.has("local")){
+                    if(type.get("local").getAsBoolean()){
+                        return;
+                    }
                 }
-                Map<String, List<Object>> payloadMap = new LinkedHashMap<>();
-                //todo create list which will include all payload parameters from "waitforit"
-                payloadMap.put(CONTEXT_VALUE_REMOVED, new ArrayList<>());
+
+                JsonObject payloadMap = type;
 
                 contextBeacon.emit(CONTEXT_VALUE_REMOVED, payloadMap, false);
             });

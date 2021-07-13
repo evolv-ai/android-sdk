@@ -28,7 +28,7 @@ public interface EvolvContext {
      * Computes the effective context from the local and remote contexts.
      * @return The effective context from the local and remote contexts.
      */
-    JsonElement resolve();
+    JsonObject resolve();
 
 
 }
