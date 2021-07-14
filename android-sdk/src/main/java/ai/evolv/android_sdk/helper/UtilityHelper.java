@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import java.util.Map;
 import java.util.regex.Pattern;
 
 public class UtilityHelper {
@@ -59,4 +60,67 @@ public class UtilityHelper {
         }
         return value;
     }
+
+    public JsonObject filter(JsonObject map, JsonObject active) {
+        JsonElement pruned = prune(map, active);
+        return expand(pruned);
+    }
+
+    public JsonElement prune(JsonObject map, JsonObject active) {
+
+        JsonObject pruned = new JsonObject();
+
+        for (Map.Entry<String, JsonElement> key : active.entrySet()) {
+
+            String[] keyParts = key.getValue().getAsString().split(Pattern.quote("."));
+
+            JsonElement current = map;
+            for (int i = 0; i < keyParts.length; i++) {
+
+                JsonElement now = null;
+                if (!current.getAsJsonObject().has(keyParts[i])){
+                    continue;
+                }
+                if(current.getAsJsonObject().get(keyParts[i]).isJsonObject()){
+                    now = current.getAsJsonObject().get(keyParts[i]).getAsJsonObject();
+                }else if(current.getAsJsonObject().get(keyParts[i]).isJsonPrimitive()){
+                    now = current.getAsJsonObject().get(keyParts[i]).getAsJsonPrimitive();
+                }
+
+                if (!now.isJsonNull()) {
+                    if (i == keyParts.length - 1) {
+                        pruned.add(key.getValue().getAsString(), now);
+                        break;
+                    }
+                    current = now;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        // TODO: 05.07.2021 add
+        //reattributePredicatedValues(pruned, active);
+        return pruned;
+    }
+
+
+    private JsonObject expand(JsonElement map) {
+
+        JsonObject expanded = new JsonObject();
+
+        for (String key : map.getAsJsonObject().keySet()) {
+
+            JsonElement v = null;
+            if(map.getAsJsonObject().get(key).isJsonObject()){
+                v = map.getAsJsonObject().get(key).getAsJsonObject();
+            }else if(map.getAsJsonObject().get(key).isJsonPrimitive()){
+                v = map.getAsJsonObject().get(key).getAsJsonPrimitive();
+            }
+            setKeyToValue(key,v,expanded);
+        }
+
+        return expanded;
+    }
+
 }

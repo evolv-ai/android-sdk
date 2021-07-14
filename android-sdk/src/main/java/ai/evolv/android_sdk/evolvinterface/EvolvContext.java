@@ -1,14 +1,15 @@
 package ai.evolv.android_sdk.evolvinterface;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 import java.util.Map;
 
 public interface EvolvContext {
 
     void initialize(String uid,
-                    Map<String, Object> remoteContext,
-                    Map<String, Object> localContext);
+                    JsonObject remoteContext,
+                    JsonObject localContext);
 
 
     /**
@@ -27,7 +28,7 @@ public interface EvolvContext {
      * Computes the effective context from the local and remote contexts.
      * @return The effective context from the local and remote contexts.
      */
-    JsonElement resolve();
+    JsonObject resolve();
 
 
 }

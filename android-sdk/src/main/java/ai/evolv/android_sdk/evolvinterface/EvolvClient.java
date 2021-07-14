@@ -1,51 +1,45 @@
 package ai.evolv.android_sdk.evolvinterface;
 
-import java.util.Map;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
-import ai.evolv.android_sdk.exceptions.EvolvKeyError;
+import java.util.ArrayList;
+import java.util.Map;
 
 public interface EvolvClient {
 
     /**
-     * Retrieves a value from the participant's allocation, returns a default upon error.
-     * <p>
-     *     Given a unique key this method will retrieve the key's associated value. A
-     *     default value can also be specified in case any errors occur during the values
-     *     retrieval. If the allocation call times out or fails the default value is
-     *     always returned. This method is blocking, it will wait till the allocation
-     *     is available and then return.
-     * </p>
-     * @param key a unique key identifying a specific value in the participants
-     *           allocation
-     * @param defaultValue a default value to return upon error
-     * @param <T> type of value to be returned
+     * Get the value of a specified key.
+     *
+     * @param key          The key of the value to retrieve.
      * @return a value associated with the given key
      */
-    <T> T get(String key, T defaultValue);
+    JsonElement get(String key);
 
     /**
      * Retrieves a value from Evolv asynchronously and applies some custom action.
      * <p>
-     *     This method is non blocking. It will preform the programmed action once
-     *     the allocation is available. If there is already of stored allocation
-     *     it will immediately apply the value retrieved and then when the new
-     *     allocation returns it will reapply the new changes if the experiment
-     *     has changed.
+     * This method is non blocking. It will preform the programmed action once
+     * the allocation is available. If there is already of stored allocation
+     * it will immediately apply the value retrieved and then when the new
+     * allocation returns it will reapply the new changes if the experiment
+     * has changed.
      * </p>
-     * @param key a unique key identifying a specific value in the participants
-     *            allocation
+     *
+     * @param key          a unique key identifying a specific value in the participants
+     *                     allocation
      * @param defaultValue a default value to return upon error
-     * @param function a handler that is invoked when the allocation is updated
-     * @param <T> type of value to be returned
+     * @param function     a handler that is invoked when the allocation is updated
+     * @param <T>          type of value to be returned
      */
     <T> void subscribe(String key, T defaultValue, EvolvAction<T> function);
 
     /**
      * Sends a confirmed event to Evolv.
      * <p>
-     *     Method produces a confirmed event which confirms the participant's
-     *     allocation. Method will not do anything in the event that the allocation
-     *     timed out or failed.
+     * Method produces a confirmed event which confirms the participant's
+     * allocation. Method will not do anything in the event that the allocation
+     * timed out or failed.
      * </p>
      */
     void confirm();
@@ -53,29 +47,93 @@ public interface EvolvClient {
     /**
      * Sends a contamination event to Evolv.
      * <p>
-     *     Method produces a contamination event which will contaminate the
-     *     participant's allocation. Method will not do anything in the event
-     *     that the allocation timed out or failed.
+     * Method produces a contamination event which will contaminate the
+     * participant's allocation. Method will not do anything in the event
+     * that the allocation timed out or failed.
      * </p>
      */
     void contaminate();
 
     /**
      * Check all active keys that start with the specified prefix.
+     *
      * @param prefix a unique key identifying a specific value in the participants
-     *           allocation
-     * @param defaultValue a default value to return upon error
-     * @param <T> type of value to be returned
-     * @return a value associated with the given key
+     *               allocation
      */
-    <T> T getActiveKeys(String prefix, T defaultValue);
+    JsonObject getActiveKeys(String prefix);
+
+    /**
+     * Check all active keys that start with the specified prefix.
+     * allocation
+     */
+    JsonObject getActiveKeys();
 
     /**
      * Initializes the client with required context information.
-     * @param uid A globally unique identifier for the current participant.
+     *
+     * @param uid           A globally unique identifier for the current participant.
      * @param remoteContext A map of data used for evaluating context predicates and analytics.
-     * @param localContext A map of data used only for evaluating context predicates.
+     * @param localContext  A map of data used only for evaluating context predicates.
      */
-    void initialize(String uid, Map<String, Object> remoteContext,  Map<String, Object> localContext);
+    void initialize(String uid, JsonObject remoteContext, JsonObject localContext);
+
+    /**
+     * Reevaluates the current context..
+     */
+    void reevaluateContext();
+
+    /**
+     * Preload all keys under under the specified prefixes.
+     *
+     * @param prefixes   A list of prefixes to keys to load.
+     * @param configOnly If true, only the config would be loaded.
+     * @param immediate  Forces the requests to the server.
+     */
+    void preload(ArrayList<String> prefixes, boolean configOnly, boolean immediate);
+
+    /**
+     * Preload all keys under under the specified prefixes.
+     *
+     * @param prefixes   A list of prefixes to keys to load.
+     * @param configOnly If true, only the config would be loaded.
+     *                   immediate - Forces the requests to the server. (default: false)
+     */
+    void preload(ArrayList<String> prefixes, boolean configOnly);
+
+    /**
+     * Preload all keys under under the specified prefixes.
+     *
+     * @param prefixes A list of prefixes to keys to load.
+     *                 immediate - Forces the requests to the server. (default: false)
+     *                 configOnly - If true, only the config would be loaded. (default: false)
+     */
+    void preload(ArrayList<String> prefixes);
+
+    /**
+     * Check if a specified key is currently active.
+     *
+     * @param key The key to check.
+     */
+    boolean isActive(String key);
+
+    /**
+     * Get the configuration for a specified key.
+     *
+     * @param key The key to retrieve the configuration for.
+     */
+    JsonElement getConfig(String key);
+
+    /**
+     * Clears the active keys to reset the key states.
+     *
+     * @param prefix The prefix of the keys clear.
+     */
+    void clearActiveKeys(String prefix);
+
+    /**
+     * Clears all active keys to reset the key states.
+     *
+     */
+    void clearActiveKeys();
 
 }

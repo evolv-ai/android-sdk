@@ -5,6 +5,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.Map;
 
+import okhttp3.RequestBody;
+
 public interface HttpClient {
 
     /**
@@ -20,6 +22,6 @@ public interface HttpClient {
      */
     ListenableFuture<String> get(String url);
 
-    ListenableFuture<String> post(String url, String userId);
+    ListenableFuture<String> post(String url, RequestBody requestBody);
 
 }

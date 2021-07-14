@@ -109,20 +109,17 @@ public class OkHttpClient implements HttpClient {
         return responseFuture;
     }
 
-    public ListenableFuture<String> post(String url, String userId) {
-        return postStringSettableFuture(url, httpClient, userId);
+    public ListenableFuture<String> post(String url, RequestBody requestBody) {
+        return postStringSettableFuture(url, httpClient, requestBody);
     }
 
     private static SettableFuture<String> postStringSettableFuture(
-            String url, okhttp3.OkHttpClient httpClient, String userId) {
+            String url, okhttp3.OkHttpClient httpClient, RequestBody requestBody) {
         SettableFuture<String> responseFuture = SettableFuture.create();
 
-        RequestBody formBody = new FormBody.Builder()
-                .add("uid", userId)
-                .build();
         Request request = new Request.Builder()
                 .url(url)
-                .post(formBody)
+                .post(requestBody)
                 .build();
 
         httpClient.newCall(request).enqueue(new Callback() {
@@ -141,7 +138,7 @@ public class OkHttpClient implements HttpClient {
 
                     if (!response.isSuccessful()) {
                         throw new IOException(String.format("Unexpected response "
-                                        + "when making GET request: %s using url: %s with body: %s",
+                                        + "when making POST request: %s using url: %s with body: %s",
                                 response, request.url(), body));
                     }
 

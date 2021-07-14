@@ -44,8 +44,8 @@ class EvolvContextImpl implements EvolvContext {
 
     @Override
     public void initialize(String uid,
-                           Map<String, Object> remoteContext,
-                           Map<String, Object> localContext) {
+                           JsonObject remoteContext,
+                           JsonObject localContext) {
 
         if (initialized) {
             try {
@@ -74,11 +74,17 @@ class EvolvContextImpl implements EvolvContext {
         initialized = true;
 
         JsonElement resolve = resolve();
-        List<Object> objects = new ArrayList<>();
-        objects.add(CONTEXT_INITIALIZED);
-        objects.add(resolve);
+        // TODO: 13.07.2021 remove
+//        List<Object> objects = new ArrayList<>();
+//        objects.add(CONTEXT_INITIALIZED);
+//        objects.add(resolve);
 
-        waitForIt.emit(this, CONTEXT_INITIALIZED, objects);
+        JsonObject object = new JsonObject();
+        object.addProperty("type",CONTEXT_INITIALIZED);
+        object.add("value",resolve);
+
+
+        waitForIt.emit(this, CONTEXT_INITIALIZED, object);
     }
 
 
@@ -109,27 +115,29 @@ class EvolvContextImpl implements EvolvContext {
 
         helper.setKeyToValue(key, jsonValue, context);
 
-        Object updated = this.resolve();
+        JsonObject updated = this.resolve();
 
         if (before == null ) {
-            // TODO: 04.06.2021 note: I need to decide which type is better to use (JsonElement/List<Object>)
-            List<Object> objects = new ArrayList<>(Arrays.asList(
-                    CONTEXT_VALUE_ADDED,
-                    key,
-                    value,
-                    local,
-                    updated));
+
+            JsonObject objects = new JsonObject();
+            objects.addProperty("type",CONTEXT_VALUE_ADDED);
+            objects.addProperty("key",key);
+            objects.add("value",jsonValue);
+            objects.addProperty("local",false);
+            objects.add("updated",updated);
+
 
             waitForIt.emit(this, CONTEXT_VALUE_ADDED, objects);
         } else {
-            // TODO: 04.06.2021 note: I need to decide which type is better to use (JsonElement/List<Object>)
-            List<Object> objects = new ArrayList<>(Arrays.asList(
-                    CONTEXT_VALUE_CHANGED,
-                    key,
-                    value,
-                    before,
-                    local,
-                    updated));
+
+            JsonObject objects = new JsonObject();
+            objects.addProperty("type",CONTEXT_VALUE_CHANGED);
+            objects.addProperty("key",key);
+            objects.add("value",jsonValue);
+            objects.add("before",before);
+            objects.addProperty("local",false);
+            objects.add("updated",updated);
+
 
             waitForIt.emit(this, CONTEXT_VALUE_CHANGED, objects);
         }
@@ -140,7 +148,7 @@ class EvolvContextImpl implements EvolvContext {
     }
 
     @Override
-    public JsonElement resolve() {
+    public JsonObject resolve() {
         ensureInitialized();
         // TODO: 10.06.2021 implement
         //return objects.deepClone(mutableResolve());
