@@ -1,6 +1,7 @@
 package ai.evolv.android_sdk;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 
 import org.slf4j.Logger;
@@ -150,7 +151,13 @@ public class EvolvClientImpl implements EvolvClient {
 
     @Override
     public JsonElement get(String key) {
-        return evolvStore.getValue(key);
+
+        if( evolvStore.getValue(key).isJsonPrimitive()){
+            return evolvStore.getValue(key).getAsJsonPrimitive();
+        }else if(evolvStore.getValue(key).isJsonObject()){
+            return evolvStore.getValue(key).getAsJsonObject();
+        }
+        return JsonNull.INSTANCE;
     }
 
     @Override

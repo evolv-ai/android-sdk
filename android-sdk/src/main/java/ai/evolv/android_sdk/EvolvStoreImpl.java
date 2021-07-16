@@ -7,6 +7,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -14,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -74,7 +76,7 @@ class EvolvStoreImpl {
     private JsonObject activeKeys = new JsonObject();
     private JsonObject activeVariants = new JsonObject();
     private CopyOnWriteArrayList<String> expLoadedList = new CopyOnWriteArrayList<>();
-    CountDownLatch latch = new CountDownLatch(1);
+    private CountDownLatch latch = new CountDownLatch(1);
 
     @FunctionalInterface
     interface Filter<T> {
@@ -288,8 +290,8 @@ class EvolvStoreImpl {
             activeEids = result.get("activeEids").getAsString();
         }
 
-        clearActiveKeysStore();
-        clearActiveVariantsStore();
+        clearActiveKeysImpl();
+        clearActiveVariantsImpl();
 
         for (Map.Entry<String, JsonElement> expKeyStates : configKeyStates.experiments.entrySet()) {
             JsonObject active = expKeyStates.getValue().getAsJsonObject().get("active").getAsJsonObject();
@@ -319,20 +321,38 @@ class EvolvStoreImpl {
         reevaluatingContext = false;
     }
 
-    private void clearActiveKeysStore() {
-        for (String s : activeKeys.keySet()) activeKeys.remove(s);
-    }
+    private void clearActiveKeysPrefixImpl(String prefix) {
+        Map<String,String> mapKeys = new HashMap();
+        for (String s : activeKeys.keySet()) {
+            mapKeys.put(s,activeKeys.get(s).getAsString());
+        }
 
-    private void clearActiveKeysStorePrefix(String prefix) {
-        for (String key : activeKeys.keySet()) {
-            if (key.startsWith(prefix)) {
-                activeKeys.remove(key);
+        for (Map.Entry<String, String> key : mapKeys.entrySet()) {
+            if(key.getValue().startsWith(prefix)) {
+                activeKeys.remove(key.getKey());
             }
         }
     }
+    private void clearActiveKeysImpl() {
+        List<String> keys = new ArrayList<>();
+        for (String s : activeKeys.keySet()) {
+            keys.add(s);
+        }
 
-    private void clearActiveVariantsStore() {
-        for (String s : activeVariants.keySet()) activeVariants.remove(s);
+        for (String key : keys) {
+            activeKeys.remove(key);
+        }
+    }
+
+    private void clearActiveVariantsImpl() {
+        List<String> keys = new ArrayList<>();
+        for (String s : activeVariants.keySet()) {
+            keys.add(s);
+        }
+
+        for (String key : keys) {
+            activeVariants.remove(key);
+        }
     }
 
     private JsonObject generateEffectiveGenome(JsonObject expsKeyStates, JsonObject genomes) {
@@ -611,8 +631,7 @@ class EvolvStoreImpl {
         // TODO: 02.06.2021 implement
     }
 
-    // TODO: 11.06.2021 need a unit test
-    private JsonArray evaluatePredicates(int version, EvolvContext evolvContext, JsonElement config) {
+    JsonArray evaluatePredicates(int version, EvolvContext evolvContext, JsonElement config) {
         JsonArray result = new JsonArray();
 
         if (!config.getAsJsonObject().has("_experiments"))
@@ -697,7 +716,15 @@ class EvolvStoreImpl {
         return expLoadedList;
     }
 
-    // TODO: 07.07.2021 need to test+
+    //need for testing (unit test)
+    public void setGenomes(JsonObject genomes) {
+        this.genomes = genomes;
+    }
+    //need for testing (unit test)
+    public void setActiveKeys(JsonObject activeKeys) {
+        this.activeKeys = activeKeys;
+    }
+
     JsonObject getActiveKeys(String prefix) {
         JsonObject result = new JsonObject();
 
@@ -709,14 +736,8 @@ class EvolvStoreImpl {
         return result;
     }
 
-    // TODO: 07.07.2021 need to test+
     JsonObject getActiveKeys() {
-        JsonObject result = new JsonObject();
-
-        for (Map.Entry<String, JsonElement> key : activeKeys.entrySet()) {
-            result.addProperty("current_" + key.getKey(), key.getValue().getAsString());
-        }
-        return result;
+        return activeKeys;
     }
 
     private boolean hasPrefix(String key, String prefix) {
@@ -774,17 +795,21 @@ class EvolvStoreImpl {
 
     // TODO: 07.07.2021 need to test!-
     JsonElement getValue(String key) {
-        return helper.getValueForKey(key, genomes);
+
+        for (String expKey : genomes.keySet()) {
+            return helper.getValueForKey(key, genomes.get(expKey));
+        }
+        return JsonNull.INSTANCE;
     }
 
     // TODO: 07.07.2021 need to test?
     void clearActiveKeys(String prefix) {
-        clearActiveKeysStorePrefix(prefix);
+        clearActiveKeysPrefixImpl(prefix);
     }
 
     // TODO: 07.07.2021 need to test?
     void clearActiveKeys() {
-        clearActiveKeysStore();
+        clearActiveKeysImpl();
     }
 
 

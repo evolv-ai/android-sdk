@@ -42,6 +42,10 @@ class EvolvContextImpl implements EvolvContext {
         return remoteContext;
     }
 
+    public void setRemoteContext(JsonObject remoteContext) {
+        this.remoteContext = remoteContext ;
+    }
+
     @Override
     public void initialize(String uid,
                            JsonObject remoteContext,

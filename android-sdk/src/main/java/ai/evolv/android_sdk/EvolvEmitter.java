@@ -10,26 +10,17 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import ai.evolv.android_sdk.evolvinterface.EvolvContext;
-import okhttp3.FormBody;
 import okhttp3.MediaType;
 import okhttp3.RequestBody;
 
 class EvolvEmitter {
 
     public final int BATCH_SIZE = 25;
+    MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
     private String endpoint;
     private EvolvContext evolvContext;
@@ -39,33 +30,20 @@ class EvolvEmitter {
     private final Handler handler;
     private EvolvConfig evolvConfig;
     private EvolvParticipant participant;
-    // TODO: 09.07.2021  
-    //private boolean v1Events = endpointMatch && endpointMatch[1] === 'v1' && endpointMatch[2] === 'events';
 
     public EvolvEmitter(EvolvConfig evolvConfig, EvolvContext evolvContext, String action, EvolvParticipant participant) {
+
         this.endpoint = evolvConfig.getEndpoint() + "/" + evolvConfig.getEnvironmentId() + "/" + action;
         this.evolvContext = evolvContext;
         this.evolvConfig = evolvConfig;
         this.participant = participant;
         this.blockTransmit = evolvConfig.isBufferEvents();
         handler = new Handler(Looper.getMainLooper());
-        // TODO: 09.07.2021 remove (it's for testing)
-        //send(endpoint,"",false);
-        // TODO: 09.07.2021 remove (it's for testing)
-        //transmit();
+
     }
 
-    boolean send(String url, JsonObject data, boolean sync) {
-
-        MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-        // TODO: need to create request body from messages
-        RequestBody formBody = RequestBody.create(JSON, "{\n" +
-                "                \"uid\": \"79211876_161787964815811122233309\",\n" +
-                "                \"messages\":[{\"type\":\"context.value.added\",\n" +
-                "                \"sid\":\"8115094_1625817930138\",\n" +
-                "                \"timestamp\":1625826742703}]\n" +
-                "\n" +
-                "}");
+    // TODO: 16.07.2021 neet unit test
+    boolean send(String url, RequestBody formBody, boolean sync) {
 
         ListenableFuture<String> responseFuture = evolvConfig.getHttpClient().post(url, formBody);
 
@@ -73,15 +51,9 @@ class EvolvEmitter {
             @Override
             public void run() {
                 try {
-
-                    List<Object> requestedKeys = new ArrayList<>();
-                    // TODO: use a non-depreciated method "JsonParser"
-                    JsonParser parser = new JsonParser();
-                    JsonArray allocations = parser.parse(responseFuture.get()).getAsJsonArray();
-
+                    Log.d("EvolvEmitter_evolv", "RUN: " + responseFuture.toString());
                 } catch (Exception e) {
-                    Log.d("EvolvEmitter_evolv", "There was a failure while retrieving the allocations.", e);
-
+                    Log.d("EvolvEmitter_evolv1", "There was a failure while retrieving the allocations.", e);
                 }
             }
         }, MoreExecutors.directExecutor());
@@ -89,10 +61,9 @@ class EvolvEmitter {
         return false;
     }
 
-
+    // TODO: 16.07.2021 need unit test
     void emit(String type, JsonObject payload, boolean flush) {
         JsonObject messagesObject = new JsonObject();
-
         messagesObject.addProperty("type", type);
         messagesObject.add("payload", payload);
         messagesObject.addProperty("sid", "sid_remove_from_server");
@@ -108,6 +79,7 @@ class EvolvEmitter {
         transmit();
     }
 
+    // TODO: 16.07.2021 need unit test
     private void transmit() {
 
         boolean sync = false;
@@ -121,9 +93,8 @@ class EvolvEmitter {
         if (timer != 0) {
             clearTimeout();
         }
-// TODO: 09.07.2021  
-        if (v1Events()) {
 
+        if (v1Events()) {
             for (JsonElement message : batch) {
                 JsonObject editedMessage = message.getAsJsonObject();
                 if (editedMessage.has("payload")) {
@@ -134,11 +105,11 @@ class EvolvEmitter {
                     editedMessage.add("type", editedMessage.get("type"));
                 }
 
-                send(endpoint, editedMessage, sync);
+                RequestBody formBody = wrapMessagesEvents(editedMessage);
+                // TODO: 16.07.2021 uncomment (do not spam the server during testing)
+                //send(endpoint, formBody, sync);
             }
-
         } else {
-
             while (true) {
                 // TODO: 12.07.2021 copy a part of array
                 JsonArray smallBatch = batch.deepCopy();//.slice(0, BATCH_SIZE);
@@ -146,28 +117,35 @@ class EvolvEmitter {
                     break;
                 }
 
-
-                //send(endpoint,smallBatch,sync);
+                RequestBody formBody = wrapMessagesData(smallBatch);
+                // TODO: 16.07.2021 uncomment (do not spam the server during testing)
+                //send(endpoint, formBody, sync);
                 break;
-
-                // TODO: 12.07.2021 figure it out
-//                if (!send(endpoint, JSON.stringify(wrapMessages(smallBatch)), sync)) {
-//                    messages = batch
-//                    console.error('Evolv: Unable to send analytics beacon');
-//                    break;
-//                }
-//
+// TODO: 15.07.2021 copy a part of array
 //                batch = batch.slice(BATCH_SIZE);
             }
-
         }
-
-        if (messages.size() != 0) {
-            //handler.postDelayed(this::transmit, 1000);
-        }
-
     }
 
+    private RequestBody wrapMessagesData(JsonArray msgArray) {
+        Gson gson = new Gson();
+        String uid = gson.toJson(participant.getUserId());
+        String messages = gson.toJson(msgArray);
+
+        RequestBody formBody = RequestBody.create(JSON, "{\"uid\": " + uid +
+                ",\"messages\":" + messages + " }");
+
+        return formBody;
+    }
+
+    private RequestBody wrapMessagesEvents(JsonObject msgObject) {
+        Gson gson = new Gson();
+        String messages = gson.toJson(msgObject);
+
+        RequestBody formBody = RequestBody.create(JSON, "{\"messages\":" + messages + " }");
+
+        return formBody;
+    }
 
     private boolean v1Events() {
         return endpoint.contains("/v1/") && endpoint.contains("events");
@@ -182,7 +160,6 @@ class EvolvEmitter {
     }
 
     private void clearMessages() {
-        // TODO: 12.07.2021
-        //for (String key : messages.keySet()) messages.remove(key);
+        for (JsonElement key : messages) messages.remove(key);
     }
 }

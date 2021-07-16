@@ -133,7 +133,9 @@ class EvolvPredicatesImpl {
     }
 
     JsonElement valueFromKey(JsonElement context, String key) {
-        if (context.isJsonNull()) return JsonNull.INSTANCE;
+        if (context == null || context.isJsonNull()){
+            return JsonNull.INSTANCE;
+        }
         int nextToken = key.indexOf('.');
 
         if (nextToken == 0) {
