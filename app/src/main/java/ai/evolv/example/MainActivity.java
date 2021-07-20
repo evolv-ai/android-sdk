@@ -8,11 +8,17 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListenableFutureTask;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.SettableFuture;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 import ai.evolv.android_sdk.EvolvClientImpl;
@@ -78,42 +84,80 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+
         evolvContext = ((EvolvClientImpl)client).getEvolvContext();
         //case 1
-        //evolvContext.set("signedin","yes",false);
+            //evolvContext.set("signedin","yes",false);
         //case 2
-        evolvContext.set("authenticated","false",false);
-        evolvContext.set("text","cancel",false);
-        evolvContext.set("device","mobile",false);
+            //evolvContext.set("authenticated","false",false);
+            //evolvContext.set("text","cancel",false);
+            //evolvContext.set("device","mobile",false);
         //case 3
         evolvContext.set("Age","26",false);
         evolvContext.set("Sex","female",false);
         evolvContext.set("view","home",false);
-        //evolvContext.set("view","next",false);
 
         // TODO: 02.06.2021 allow adding third or more orders of keys to the remote context
         //evolvContext.set("key.test.test1","test_value",false);
 
+        client.getActiveKeys(new EvolvAction<JsonObject>() {
+            @Override
+            public void apply(JsonObject activeKeys) {
+                Log.d("evolvCallBack_", "5 MainActivity: " + activeKeys +" " + Thread.currentThread().getName());
+            }
+        });
+
+        client.getActiveKeys("home",new EvolvAction<JsonObject>() {
+            @Override
+            public void apply(JsonObject activeKeysPrefix) {
+                Log.d("evolvCallBack_", "6 MainActivity: " + activeKeysPrefix +" " + Thread.currentThread().getName());
+            }
+        });
+
+        client.getActiveKeys("button_color",new EvolvAction<JsonObject>() {
+            @Override
+            public void apply(JsonObject activeKeysPrefix) {
+                Log.d("evolvCallBack_", "7 MainActivity: " + activeKeysPrefix +" " + Thread.currentThread().getName());
+            }
+        });
+
+        client.get("next.layout", new EvolvAction() {
+            @Override
+            public void apply(Object value) {
+                Log.d("evolvCallBack_", "8 MainActivity: " + value +" " + Thread.currentThread().getName());
+            }
+        });
+
+
+
     }
 
     public void pressHome(View view) {
-        // test area -->
-        JsonObject activeKeys = client.getActiveKeys();
-        for (Map.Entry<String, JsonElement> s : activeKeys.entrySet()) { Log.d("1_activeKeys_", "Active Keys: " +s.getValue()); }
+// test area -->
 
-//        JsonObject activeKeysPrefix = client.getActiveKeys("home");
-//        for (Map.Entry<String, JsonElement> s : activeKeysPrefix.entrySet()) {  Log.d("activeKeys_", "activeKeysPrefix: " + s.getValue()); }
 
-        client.clearActiveKeys("home");
+        //evolvContext.set("signedin","yes",false);
+        evolvContext.set("view","next",false);
 
-        for (Map.Entry<String, JsonElement> s : activeKeys.entrySet()) { Log.d("1_activeKeys_", "Active Keys: " +s.getValue()); }
 
-        //client.reevaluateContext();
-
-        //String value = client.get("home.cta_text");
-        JsonElement value1 = client.get("home");
-        Log.d("1_activeKeys_", "GET: " +value1);
-
-        //<--
+//        // TODO: 19.07.2021 uncomment
+//        //JsonObject activeKeys = client.getActiveKeys();
+//        JsonObject activeKeys = null;
+//        for (Map.Entry<String, JsonElement> s : activeKeys.entrySet()) { Log.d("1_activeKeys_", "Active Keys: " +s.getValue()); }
+//
+////        JsonObject activeKeysPrefix = client.getActiveKeys("home");
+////        for (Map.Entry<String, JsonElement> s : activeKeysPrefix.entrySet()) {  Log.d("activeKeys_", "activeKeysPrefix: " + s.getValue()); }
+//
+//        client.clearActiveKeys("home");
+//
+//        for (Map.Entry<String, JsonElement> s : activeKeys.entrySet()) { Log.d("1_activeKeys_", "Active Keys: " +s.getValue()); }
+//
+//        //client.reevaluateContext();
+//
+//        //String value = client.get("home.cta_text");
+//        JsonElement value1 = client.get("home");
+//        Log.d("1_activeKeys_", "GET: " +value1);
+//
+// test area <--
     }
 }

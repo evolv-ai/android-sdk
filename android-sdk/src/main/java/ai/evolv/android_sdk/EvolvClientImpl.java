@@ -1,5 +1,13 @@
 package ai.evolv.android_sdk;
 
+import android.util.Log;
+
+import androidx.annotation.NonNull;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.Observer;
+
+import com.google.common.util.concurrent.SettableFuture;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
@@ -13,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 import ai.evolv.android_sdk.evolvinterface.EvolvAction;
+import ai.evolv.android_sdk.evolvinterface.EvolvCallBack;
 import ai.evolv.android_sdk.evolvinterface.EvolvClient;
 import ai.evolv.android_sdk.evolvinterface.EvolvContext;
 import ai.evolv.android_sdk.evolvinterface.EvolvInvocation;
@@ -22,6 +31,7 @@ import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_INITIALIZED;
 import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_VALUE_ADDED;
 import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_VALUE_CHANGED;
 import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_VALUE_REMOVED;
+import static ai.evolv.android_sdk.EvolvStoreImpl.EMPTY_STRING;
 import static ai.evolv.android_sdk.EvolvStoreImpl.REQUEST_FAILED;
 
 public class EvolvClientImpl implements EvolvClient {
@@ -148,16 +158,34 @@ public class EvolvClientImpl implements EvolvClient {
             waitForIt.emit(evolvContext, INITIALIZED, evolvConfig);
         }
     }
+// TODO: 19.07.2021 uncomment (callBack testing)
+//    @Override
+//    public JsonElement get(String key) {
+//
+//        JsonElement element = evolvStore.getValue(key);
+//
+//        if (element == null) return JsonNull.INSTANCE;
+//
+//        if( evolvStore.getValue(key).isJsonPrimitive()){
+//            return evolvStore.getValue(key).getAsJsonPrimitive();
+//        }else if(evolvStore.getValue(key).isJsonObject()){
+//            return evolvStore.getValue(key).getAsJsonObject();
+//        }
+//        return JsonNull.INSTANCE;
+//    }
 
     @Override
-    public JsonElement get(String key) {
+    public void get(String key, EvolvAction action) {
 
-        if( evolvStore.getValue(key).isJsonPrimitive()){
-            return evolvStore.getValue(key).getAsJsonPrimitive();
-        }else if(evolvStore.getValue(key).isJsonObject()){
-            return evolvStore.getValue(key).getAsJsonObject();
-        }
-        return JsonNull.INSTANCE;
+        EvolvCallBack evolvCallBack = new EvolvCallBack() {
+            @Override
+            public void invoke(Object object) {
+
+                action.apply(object);
+            }
+        };
+
+        evolvStore.subscribe(EvolvType.get, key, evolvCallBack);
     }
 
     @Override
@@ -171,15 +199,45 @@ public class EvolvClientImpl implements EvolvClient {
     @Override
     public void contaminate() {
     }
+    // TODO: 19.07.2021 uncomment (callBack testing)
+//    @Override
+//    public JsonObject getActiveKeys(String prefix) {
+//       return  evolvStore.getActiveKeys(prefix);
+//    }
 
     @Override
-    public JsonObject getActiveKeys(String prefix) {
-       return  evolvStore.getActiveKeys(prefix);
+    public void getActiveKeys(String prefix, EvolvAction action) {
+
+        EvolvCallBack evolvCallBack = new EvolvCallBack() {
+            @Override
+            public void invoke(Object object) {
+                Log.d("evolvCallBack_", "4 invoke CLIENT: ");
+                action.apply(object);
+            }
+        };
+
+        //evolvStore.getActiveKeys(prefix, evolvCallBack);
+        evolvStore.subscribe(EvolvType.getActiveKeys, prefix, evolvCallBack);
+
     }
 
+    // TODO: 19.07.2021 uncomment (callBack testing)
+//    @Override
+//    public JsonObject getActiveKeys() {
+//        return evolvStore.getActiveKeys();
+//    }
     @Override
-    public JsonObject getActiveKeys() {
-        return evolvStore.getActiveKeys();
+    public void getActiveKeys(EvolvAction action) {
+
+        EvolvCallBack evolvCallBack = new EvolvCallBack() {
+            @Override
+            public void invoke(Object object) {
+                Log.d("evolvCallBack_", "4 invoke CLIENT: ");
+                action.apply(object);
+            }
+        };
+
+        evolvStore.subscribe(EvolvType.getActiveKeys,EMPTY_STRING,evolvCallBack);
     }
 
     @Override
