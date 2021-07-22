@@ -1,5 +1,6 @@
 package ai.evolv.android_sdk.evolvinterface;
 
+import com.google.common.util.concurrent.SettableFuture;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -14,7 +15,9 @@ public interface EvolvClient {
      * @param key          The key of the value to retrieve.
      * @return a value associated with the given key
      */
-    JsonElement get(String key);
+    // TODO: 19.07.2021 uncomment (callBack testing)
+    //JsonElement get(String key);
+    void get(String key,EvolvAction action);
 
     /**
      * Retrieves a value from Evolv asynchronously and applies some custom action.
@@ -60,13 +63,19 @@ public interface EvolvClient {
      * @param prefix a unique key identifying a specific value in the participants
      *               allocation
      */
-    JsonObject getActiveKeys(String prefix);
+    // TODO: 19.07.2021 uncomment (callBack testing)
+    //JsonObject getActiveKeys(String prefix);
+    void getActiveKeys(String prefix,EvolvAction action);
 
     /**
      * Check all active keys that start with the specified prefix.
      * allocation
      */
-    JsonObject getActiveKeys();
+    // TODO: 19.07.2021 uncomment (callBack testing)
+    //JsonObject getActiveKeys();
+    void getActiveKeys(EvolvAction action);
+
+
 
     /**
      * Initializes the client with required context information.

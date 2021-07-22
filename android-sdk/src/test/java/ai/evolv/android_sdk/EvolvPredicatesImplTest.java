@@ -16,6 +16,7 @@ public class EvolvPredicatesImplTest {
     private static final String rawExperiment = "{\"web\":{},\"_predicate\":{},\"home\":{\"_is_entry_point\":true,\"_predicate\":{\"combinator\":\"and\",\"rules\":[{\"field\":\"view\",\"operator\":\"equal\",\"value\":\"home\"}]},\"cta_text\":{\"_is_entry_point\":false,\"_predicate\":null,\"_values\":true,\"_initializers\":true},\"_initializers\":true},\"next\":{\"_is_entry_point\":false,\"_predicate\":{\"combinator\":\"and\",\"rules\":[{\"field\":\"view\",\"operator\":\"equal\",\"value\":\"next\"}]},\"layout\":{\"_is_entry_point\":false,\"_predicate\":null,\"_values\":true,\"_initializers\":true},\"_initializers\":true},\"_paused\":false}";
     private static final String rawContext_one = "{\"key\":{\"test\":\"test_value\"},\"experiments\":{\"allocations\":[{\"uid\":\"79211876_16178796481581112223331\",\"eid\":\"47d857cd5e\",\"cid\":\"5fa0fd38aae6:47d857cd5e\",\"ordinal\":0,\"group_id\":\"511ce252-92b5-4611-a00c-0e4120369c96\",\"excluded\":false}],\"exclusions\":[]}}";
     private static final String rawContext_two = "{\"signedin\":\"yes\",\"experiments\":{\"allocations\":[{\"uid\":\"79211876_16178796481581112223331\",\"eid\":\"47d857cd5e\",\"cid\":\"5fa0fd38aae6:47d857cd5e\",\"ordinal\":0,\"group_id\":\"511ce252-92b5-4611-a00c-0e4120369c96\",\"excluded\":false}],\"exclusions\":[]}}";
+    private static final String rawContext_four = "{\"Age\":26,\"Sex\":\"female\",\"view\":\"home\",\"experiments\":{\"allocations\":{\"allocs\":{\"uid\":\"79211876_16178796481581112223331\",\"eid\":\"47d857cd5e\",\"cid\":\"5fa0fd38aae6:47d857cd5e\",\"ordinal\":0,\"group_id\":\"511ce252-92b5-4611-a00c-0e4120369c96\",\"excluded\":false}},\"exclusions\":{}}}";
 
     //testEvaluatePredicate
     private static final String rawUser_one = "{\"signedin\":\"yes\",\"Age\":26,\"Sex\":\"female\",\"view\":\"home\",\"experiments\":{\"allocations\":{\"allocs\":{\"uid\":\"79211876_16178796481581112223331\",\"eid\":\"47d857cd5e\",\"cid\":\"5fa0fd38aae6:47d857cd5e\",\"ordinal\":0,\"group_id\":\"511ce252-92b5-4611-a00c-0e4120369c96\",\"excluded\":false}},\"exclusions\":{}}}";
@@ -56,6 +57,8 @@ public class EvolvPredicatesImplTest {
     public void testValueFromKey() {
 
         JsonElement context = parseRawJsonObject(rawContext_one);
+        JsonElement context_four = parseRawJsonObject(rawContext_four);
+
         EvolvPredicatesImpl predicates = new EvolvPredicatesImpl();
 
         String key = "key.test";
@@ -79,6 +82,27 @@ public class EvolvPredicatesImplTest {
         Assert.assertEquals(element.getAsJsonArray().get(0).getAsJsonObject().get("ordinal").getAsString(), "0");
         Assert.assertEquals(element.getAsJsonArray().get(0).getAsJsonObject().get("group_id").getAsString(), "511ce252-92b5-4611-a00c-0e4120369c96");
         Assert.assertFalse(element.getAsJsonArray().get(0).getAsJsonObject().get("excluded").getAsBoolean());
+
+
+        JsonElement jsonElement = predicates.valueFromKey(context_four, "Age");
+        Assert.assertEquals(jsonElement.getAsString(), "26");
+
+        jsonElement = predicates.valueFromKey(context_four,"view" );
+        Assert.assertEquals(jsonElement.getAsString(), "home");
+
+        jsonElement = predicates.valueFromKey(context_four, "Sex");
+        Assert.assertEquals(jsonElement.getAsString(), "female");
+
+        jsonElement = predicates.valueFromKey(context_four,"experiments.allocations");
+        Assert.assertEquals(jsonElement.getAsJsonObject().size(), 1);
+        Assert.assertEquals(jsonElement.getAsJsonObject().get("allocs").getAsJsonObject().size(), 6);
+
+        Assert.assertEquals(jsonElement.getAsJsonObject().get("allocs").getAsJsonObject().get("uid").getAsString(), "79211876_16178796481581112223331");
+        Assert.assertEquals(jsonElement.getAsJsonObject().get("allocs").getAsJsonObject().get("eid").getAsString(), "47d857cd5e");
+        Assert.assertEquals(jsonElement.getAsJsonObject().get("allocs").getAsJsonObject().get("cid").getAsString(), "5fa0fd38aae6:47d857cd5e");
+        Assert.assertEquals(jsonElement.getAsJsonObject().get("allocs").getAsJsonObject().get("ordinal").getAsString(), "0");
+        Assert.assertEquals(jsonElement.getAsJsonObject().get("allocs").getAsJsonObject().get("group_id").getAsString(), "511ce252-92b5-4611-a00c-0e4120369c96");
+        Assert.assertFalse(jsonElement.getAsJsonObject().get("allocs").getAsJsonObject().get("excluded").getAsBoolean());
 
     }
 

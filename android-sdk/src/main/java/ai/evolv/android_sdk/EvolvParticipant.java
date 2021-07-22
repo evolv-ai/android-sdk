@@ -16,4 +16,8 @@ public class EvolvParticipant {
         return userId;
     }
 
+    // //need for testing (unit test)
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
 }
