@@ -1,11 +1,7 @@
 package ai.evolv.android_sdk;
 
-import android.os.Build;
 import android.util.Log;
 import android.util.Pair;
-
-import androidx.annotation.RequiresApi;
-import androidx.lifecycle.MutableLiveData;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -24,23 +20,19 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
-import javax.security.auth.callback.Callback;
-
-import ai.evolv.android_sdk.evolvinterface.EvolvAction;
 import ai.evolv.android_sdk.evolvinterface.EvolvCallBack;
 import ai.evolv.android_sdk.evolvinterface.EvolvContext;
 import ai.evolv.android_sdk.evolvinterface.EvolvInvocation;
 import ai.evolv.android_sdk.exceptions.EvolvKeyError;
 import ai.evolv.android_sdk.helper.UtilityHelper;
-import kotlin.Triple;
 
 import static ai.evolv.android_sdk.EvolvConfig.DEFAULT_VERSION;
 import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_CHANGED;
@@ -85,7 +77,7 @@ class EvolvStoreImpl {
     private boolean reevaluatingContext = false;
     private JsonObject genomes = new JsonObject();
     private JsonObject effectiveGenome;
-    private String activeEids;
+    JsonArray activeEids = new JsonArray();
     private JsonObject activeKeys = new JsonObject();
     private JsonObject activeVariants = new JsonObject();
     private CopyOnWriteArrayList<String> expLoadedList = new CopyOnWriteArrayList<>();
@@ -100,16 +92,7 @@ class EvolvStoreImpl {
     }
 
     EvolvInvocation invocation = payload -> {
-
         reevaluateContext();
-//        switch (payload.toString()) {
-//            case "reevaluateContext":
-//                reevaluateContext();
-//                break;
-//            default:
-//                LOGGER.error("Failed to invoke handler");
-//                break;
-//        }
     };
 
     private class KeyStates {
@@ -227,7 +210,6 @@ class EvolvStoreImpl {
                     // TODO: use a non-depreciated method "JsonParser"
                     JsonParser parser = new JsonParser();
                     JsonArray allocations = parser.parse(responseFutureAllocations.get()).getAsJsonArray();
-                    Log.d("pull_evolv", "2" + responseFutureAllocations.get());
                     setFutureAllocations.set(allocations);
                     futureAllocations = setFutureAllocations;
 
@@ -304,7 +286,8 @@ class EvolvStoreImpl {
 
         if (result.size() != 0) {
             effectiveGenome = result.get("effectiveGenome").getAsJsonObject();
-            activeEids = result.get("activeEids").getAsString();
+            //activeEids = result.get("activeEids");
+            activeEids.add(result.get("activeEids"));
         }
 
         clearActiveKeysImpl();
@@ -334,6 +317,7 @@ class EvolvStoreImpl {
 
         waitForIt.emit(evolvContext, EFFECTIVE_GENOME_UPDATED, effectiveGenome);
 
+
         for (Map.Entry<EvolvCallBack, Pair<String, EvolvType>> entry : subscriptions.entrySet()) {
             performAction(entry.getValue().second, entry.getValue().first, entry.getKey());
         }
@@ -341,7 +325,7 @@ class EvolvStoreImpl {
         reevaluatingContext = false;
     }
 
-    private void clearActiveKeysPrefixImpl(String prefix) {
+    private void clearActiveKeysImpl(String prefix) {
         Map<String, String> mapKeys = new HashMap();
         for (String s : activeKeys.keySet()) {
             mapKeys.put(s, activeKeys.get(s).getAsString());
@@ -491,7 +475,6 @@ class EvolvStoreImpl {
             if (activeKey) {
                 active.addProperty(key, key);
                 for (Map.Entry<String, JsonElement> entryPoint : results.get("entry").getAsJsonObject().entrySet()) {
-                    //дважды заходит если ключ начинается одинаково: home home.cta_text, проверить!
                     if (key.startsWith(entryPoint.getValue().getAsString())) {
                         entryPointKey = true;
                     }
@@ -737,6 +720,23 @@ class EvolvStoreImpl {
         return expLoadedList;
     }
 
+    //TODO: 07.07.2021 need to test
+    JsonArray activeEntryPoints() {
+        JsonArray eids = new JsonArray();
+
+        for (Map.Entry<String, JsonElement> entryExperiment : configKeyStates.experiments.entrySet()) {
+
+            JsonObject entryObject = entryExperiment.getValue().getAsJsonObject().get("entry").getAsJsonObject();
+
+            if (entryObject.size() != 0) {
+                for (Map.Entry<String, JsonElement> eid : entryObject.entrySet()) {
+                    eids.add(eid.getValue());
+                }
+            }
+        }
+        return eids;
+    }
+
     //need for testing (unit test)
     public void setGenomes(JsonObject genomes) {
         this.genomes = genomes;
@@ -765,38 +765,57 @@ class EvolvStoreImpl {
         performAction(type, value, callBack);
     }
 
+    private Executor getCachedThreadPool() {
+        return Executors.newCachedThreadPool();
+    }
+
     private void performAction(EvolvType type, String value, EvolvCallBack callBack) {
-        switch (type) {
-            case getActiveKeys: {
-                if (value.isEmpty()) {
-                    JsonObject activeKeys = getActiveKeys();
-                    callBack.invoke(activeKeys);
-                } else {
-                    JsonObject activeKeysPrefix = getActiveKeys(value);
-                    callBack.invoke(activeKeysPrefix);
-                }
-                break;
-            }
-            case get: {
-                JsonElement element = getValue(value);
-                JsonElement result = JsonNull.INSTANCE;
+        getCachedThreadPool().execute(new Runnable() {
+            @Override
+            public void run() {
 
-                if (element == null) {
-                    result = JsonNull.INSTANCE;
-                    callBack.invoke(result);
-                    break;
-                }
+                switch (type) {
+                    case getActiveKeys: {
+                        if (value.isEmpty()) {
+                            JsonObject activeKeys = getActiveKeys();
+                            callBack.invoke(activeKeys);
+                        } else {
+                            JsonObject activeKeysPrefix = getActiveKeys(value);
+                            callBack.invoke(activeKeysPrefix);
+                        }
+                        break;
+                    }
+                    case get: {
+                        JsonElement element = getValue(value);
+                        JsonElement result = JsonNull.INSTANCE;
 
-                if (element.isJsonPrimitive()) {
-                    result = element.getAsJsonPrimitive();
-                } else if (element.isJsonObject()) {
-                    result = element.getAsJsonObject();
+                        if (element == null) {
+                            result = JsonNull.INSTANCE;
+                            callBack.invoke(result);
+                            break;
+                        }
+                        if (element.isJsonPrimitive()) {
+                            result = element.getAsJsonPrimitive();
+                        } else if (element.isJsonObject()) {
+                            result = element.getAsJsonObject();
+                        }
+                        callBack.invoke(result);
+                        break;
+                    }
+                    case isActive: {
+                        boolean isActive = getValueActive(value);
+                        callBack.invoke(isActive);
+                        break;
+                    }
+                    case activeEntryPoints: {
+                        JsonElement activeEntryPoints = activeEntryPoints();
+                        callBack.invoke(activeEntryPoints);
+                        break;
+                    }
+                    default:
                 }
-                callBack.invoke(result);
-                break;
             }
-            default:
-        }
+        });
     }
 
     JsonObject getActiveKeys(String prefix) {
@@ -863,7 +882,7 @@ class EvolvStoreImpl {
         return false;
     }
 
-    // TODO: 07.07.2021 need to test!-
+    // TODO: 24.07.2021 an explanation is needed here because it does not work in the js SDK
     JsonElement getConfig(String key) {
         return helper.getValueForKey(key, config);
     }
@@ -879,12 +898,13 @@ class EvolvStoreImpl {
 
     // TODO: 07.07.2021 need to test?
     void clearActiveKeys(String prefix) {
-        clearActiveKeysPrefixImpl(prefix);
+        clearActiveKeysImpl(prefix);
     }
 
     // TODO: 07.07.2021 need to test?
     void clearActiveKeys() {
         clearActiveKeysImpl();
     }
+
 
 }

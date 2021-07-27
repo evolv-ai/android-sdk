@@ -11,6 +11,9 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.Date;
 
 import ai.evolv.android_sdk.evolvinterface.EvolvContext;
@@ -53,7 +56,7 @@ class EvolvEmitter {
                 try {
                     Log.d("EvolvEmitter_evolv", "RUN: " + responseFuture.toString());
                 } catch (Exception e) {
-                    Log.d("EvolvEmitter_evolv1", "There was a failure while retrieving the allocations.", e);
+                    Log.d("EvolvEmitter_evolv", "There was a failure while retrieving the allocations.", e);
                 }
             }
         }, MoreExecutors.directExecutor());
@@ -66,6 +69,7 @@ class EvolvEmitter {
         JsonObject messagesObject = new JsonObject();
         messagesObject.addProperty("type", type);
         messagesObject.add("payload", payload);
+        // TODO: 21.07.2021 remove sid, when the server will not "swear" at the lack of the "sid" field in the body
         messagesObject.addProperty("sid", "sid_remove_from_server");
         messagesObject.addProperty("timestamp", new Date().getTime());
 
@@ -121,18 +125,14 @@ class EvolvEmitter {
                 // TODO: 16.07.2021 uncomment (do not spam the server during testing)
                 //send(endpoint, formBody, sync);
                 break;
-// TODO: 15.07.2021 copy a part of array
-//                batch = batch.slice(BATCH_SIZE);
             }
         }
     }
 
     private RequestBody wrapMessagesData(JsonArray msgArray) {
         Gson gson = new Gson();
-        String uid = gson.toJson(participant.getUserId());
         String messages = gson.toJson(msgArray);
-
-        RequestBody formBody = RequestBody.create(JSON, "{\"uid\": " + uid +
+        RequestBody formBody = RequestBody.create(JSON, "{\"uid\": " + participant.getUserId() +
                 ",\"messages\":" + messages + " }");
 
         return formBody;
@@ -140,9 +140,19 @@ class EvolvEmitter {
 
     private RequestBody wrapMessagesEvents(JsonObject msgObject) {
         Gson gson = new Gson();
-        String messages = gson.toJson(msgObject);
+        JsonObject payload = msgObject.get("payload").getAsJsonObject();
+        String uid = gson.toJson(payload.get("uid"));
+        String cid = gson.toJson(payload.get("cid"));
+        String type = gson.toJson(msgObject.get("type"));
+        String contaminationReason = gson.toJson(payload.get("contaminationReason"));
+        String timestamp = gson.toJson(msgObject.get("timestamp"));
 
-        RequestBody formBody = RequestBody.create(JSON, "{\"messages\":" + messages + " }");
+        RequestBody formBody = RequestBody.create(JSON, "{" +
+                "\"uid\":" + uid
+                + ",\"cid\":" + cid
+                + ",\"type\":" + type
+                + ",\"contaminationReason\":" + contaminationReason
+                + ",\"timestamp\":" + timestamp + " }");
 
         return formBody;
     }
@@ -155,7 +165,7 @@ class EvolvEmitter {
         timer = 0;
     }
 
-    private void flush() {
+    void flush() {
         transmit();
     }
 
