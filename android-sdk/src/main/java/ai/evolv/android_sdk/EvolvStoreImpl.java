@@ -76,7 +76,7 @@ class EvolvStoreImpl {
     private int version;
     private boolean reevaluatingContext = false;
     private JsonObject genomes = new JsonObject();
-    private JsonObject effectiveGenome;
+    private JsonObject effectiveGenome = new JsonObject();
     JsonArray activeEids = new JsonArray();
     private JsonObject activeKeys = new JsonObject();
     private JsonObject activeVariants = new JsonObject();
@@ -286,8 +286,10 @@ class EvolvStoreImpl {
 
         if (result.size() != 0) {
             effectiveGenome = result.get("effectiveGenome").getAsJsonObject();
-            //activeEids = result.get("activeEids");
             activeEids.add(result.get("activeEids"));
+        }else{
+            clearActiveGenome();
+            clearActiveEids();
         }
 
         clearActiveKeysImpl();
@@ -349,6 +351,28 @@ class EvolvStoreImpl {
         }
     }
 
+    private void clearActiveGenome() {
+        List<String> keys = new ArrayList<>();
+        for (String s : effectiveGenome.keySet()) {
+            keys.add(s);
+        }
+
+        for (String key : keys) {
+            effectiveGenome.remove(key);
+        }
+    }
+
+    private void clearActiveEids() {
+        List<JsonElement> keys = new ArrayList<>();
+        for (JsonElement s : activeEids) {
+            keys.add(s);
+        }
+
+        for (JsonElement key : keys) {
+            activeEids.remove(key);
+        }
+    }
+
     private void clearActiveVariantsImpl() {
         List<String> keys = new ArrayList<>();
         for (String s : activeVariants.keySet()) {
@@ -371,7 +395,10 @@ class EvolvStoreImpl {
             String eid = entryExp.getKey();
             JsonObject expKeyStates = entryExp.getValue().getAsJsonObject();
 
-            JsonObject active = expKeyStates.get("active").getAsJsonObject();
+            JsonObject active = new JsonObject();
+            if(expKeyStates.has("active")){
+                active = expKeyStates.get("active").getAsJsonObject();
+            }
 
             if (genomes.has(eid) && active.getAsJsonObject().size() != 0) {
 
@@ -729,9 +756,7 @@ class EvolvStoreImpl {
             JsonObject entryObject = entryExperiment.getValue().getAsJsonObject().get("entry").getAsJsonObject();
 
             if (entryObject.size() != 0) {
-                for (Map.Entry<String, JsonElement> eid : entryObject.entrySet()) {
-                    eids.add(eid.getValue());
-                }
+                    eids.add(entryExperiment.getKey());
             }
         }
         return eids;
@@ -889,10 +914,10 @@ class EvolvStoreImpl {
 
     // TODO: 07.07.2021 need to test!-
     JsonElement getValue(String key) {
-
-        for (String expKey : genomes.keySet()) {
-            return helper.getValueForKey(key, genomes.get(expKey));
+        for (String expKey : effectiveGenome.keySet()) {
+            return helper.getValueForKey(key, effectiveGenome);
         }
+
         return JsonNull.INSTANCE;
     }
 

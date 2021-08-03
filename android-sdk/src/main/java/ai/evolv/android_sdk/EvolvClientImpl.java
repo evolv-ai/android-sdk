@@ -12,6 +12,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
 import org.json.JSONArray;
 import org.slf4j.Logger;
@@ -174,6 +175,8 @@ public class EvolvClientImpl implements EvolvClient {
 
     @Override
     public <T> void subscribe(String key, T defaultValue, EvolvAction<T> function) {
+
+
     }
 
     @Override
@@ -212,12 +215,12 @@ public class EvolvClientImpl implements EvolvClient {
 
                 JsonObject contaminations = new JsonObject();
                 if (remoteContext.has("contaminations")) {
-                    confirmations = remoteContext.get("contaminations").getAsJsonObject();
+                    contaminations = remoteContext.get("contaminations").getAsJsonObject();
                 }
 
                 JsonObject contaminatedCids = new JsonObject();
                 for (Map.Entry<String, JsonElement> entry : contaminations.entrySet() ) {
-                    confirmedCids = entry.getValue().getAsJsonObject().get("cid").getAsJsonObject();
+                    contaminatedCids = entry.getValue().getAsJsonObject().get("cid").getAsJsonObject();
                 }
 
                 JsonArray confirmableAllocations = new JsonArray();
@@ -390,11 +393,15 @@ public class EvolvClientImpl implements EvolvClient {
     }
 
     @Override
-    public void subscribeGet(String key, EvolvAction action) {
+    public void subscribeGet(String key, String defaultValue, EvolvAction action) {
         EvolvCallBack evolvCallBack = new EvolvCallBack() {
             @Override
             public void invoke(Object object) {
 
+                if(object == null || object == JsonNull.INSTANCE){
+                    JsonPrimitive jsonPrimitive = new JsonPrimitive(defaultValue);
+                    object = jsonPrimitive;
+                }
                 action.apply(object);
             }
         };

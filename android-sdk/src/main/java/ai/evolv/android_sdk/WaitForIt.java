@@ -39,7 +39,6 @@ class WaitForIt<T> {
         scopedPayloads.clear();
     }
 
-    // TODO: 04.06.2021 need to create test
     void waitFor(Object scope, String it, EvolvInvocation<T> handler) {
         ensureScope(scope);
 
@@ -52,11 +51,10 @@ class WaitForIt<T> {
         handlers.put(it, list);
 
         if (payloads.containsKey(it)) {
-               handler.invoke(payloads.get(it));
+            handler.invoke(payloads.get(it));
         }
     }
 
-    // TODO: 04.06.2021 need to create test and debug it
     void waitOnceFor(Object scope, String it, EvolvInvocation<T> handler) {
         ensureScope(scope);
 
@@ -74,7 +72,6 @@ class WaitForIt<T> {
         handlers.put(it, list);
     }
 
-    // TODO: 04.06.2021 need to create test
     void emit(Object scope, String it, T payloadList) {
         ensureScope(scope);
 
@@ -85,8 +82,18 @@ class WaitForIt<T> {
         T payload = payloadList;
         payloads.put(it, payload);
 
-        // TODO: 03.06.2021 add "onceHandlers" logic
-        
+        List<EvolvInvocation<T>> oh = onceHandlers.get(it);
+        if (oh != null) {
+            for (EvolvInvocation<T> handler : oh) {
+                try {
+                    handler.invoke(payload);
+                } catch (Exception e) {
+                    LOGGER.error("Failed to invoke handler of " + it, e);
+                }
+                oh.remove(oh);
+            }
+        }
+
         List<EvolvInvocation<T>> handlersForIt = handlers.get(it);
         if (handlersForIt == null) {
             return;
@@ -94,7 +101,7 @@ class WaitForIt<T> {
 
         for (EvolvInvocation<T> handler : handlersForIt) {
             try {
-                handler.invoke( payload);
+                handler.invoke(payload);
             } catch (Exception e) {
                 LOGGER.error("Failed to invoke handler of " + it, e);
             }

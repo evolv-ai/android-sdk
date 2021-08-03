@@ -51,7 +51,7 @@ public interface EvolvContext {
 
     /**
      * Retrieve a value from the context.
-     * @param key The kay associated with the value to retrieve.
+     * @param key The key associated with the value to retrieve.
      */
     JsonElement get(String key);
 

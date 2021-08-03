@@ -54,9 +54,9 @@ class EvolvEmitter {
             @Override
             public void run() {
                 try {
-                    Log.d("EvolvEmitter_evolv", "RUN: " + responseFuture.toString());
+                    Log.d("EvolvEmitter_data", "response: " + responseFuture.toString());
                 } catch (Exception e) {
-                    Log.d("EvolvEmitter_evolv", "There was a failure while retrieving the allocations.", e);
+                    Log.d("EvolvEmitter_data", "There was a failure while retrieving the allocations.", e);
                 }
             }
         }, MoreExecutors.directExecutor());
@@ -111,7 +111,7 @@ class EvolvEmitter {
 
                 RequestBody formBody = wrapMessagesEvents(editedMessage);
                 // TODO: 16.07.2021 uncomment (do not spam the server during testing)
-                //send(endpoint, formBody, sync);
+                send(endpoint, formBody, sync);
             }
         } else {
             while (true) {
@@ -123,7 +123,7 @@ class EvolvEmitter {
 
                 RequestBody formBody = wrapMessagesData(smallBatch);
                 // TODO: 16.07.2021 uncomment (do not spam the server during testing)
-                //send(endpoint, formBody, sync);
+                send(endpoint, formBody, sync);
                 break;
             }
         }
@@ -134,6 +134,9 @@ class EvolvEmitter {
         String messages = gson.toJson(msgArray);
         RequestBody formBody = RequestBody.create(JSON, "{\"uid\": " + participant.getUserId() +
                 ",\"messages\":" + messages + " }");
+
+        Log.d("EvolvEmitter_data", "1: " + "{\\\"uid\\\": \" + participant.getUserId() +\n" +
+                "                \",\\\"messages\\\":\" + messages + \" }");
 
         return formBody;
     }
@@ -147,12 +150,26 @@ class EvolvEmitter {
         String contaminationReason = gson.toJson(payload.get("contaminationReason"));
         String timestamp = gson.toJson(msgObject.get("timestamp"));
 
+
+        String contaminationReasonString = "";
+        if(payload.get("contaminationReason") != null){
+            contaminationReasonString = ",\"contaminationReason\":" + contaminationReason;
+        }
+
         RequestBody formBody = RequestBody.create(JSON, "{" +
                 "\"uid\":" + uid
                 + ",\"cid\":" + cid
                 + ",\"type\":" + type
-                + ",\"contaminationReason\":" + contaminationReason
+                + contaminationReasonString
                 + ",\"timestamp\":" + timestamp + " }");
+
+        Log.d("EvolvEmitter_response", "1: " + "{" +
+                "\"uid\":" + uid
+                + ",\"cid\":" + cid
+                + ",\"type\":" + type
+                + contaminationReasonString
+                + ",\"timestamp\":" + timestamp + " }");
+
 
         return formBody;
     }

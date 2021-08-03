@@ -74,7 +74,7 @@ public interface EvolvClient {
     void subscribeActiveKeys(String prefix,EvolvAction action);
 
     //test subscribeGet
-    void subscribeGet(String key,EvolvAction action);
+    void subscribeGet(String key,String defaultValue, EvolvAction action);
 
     void subscribeIsActive(String key, EvolvAction action);
 

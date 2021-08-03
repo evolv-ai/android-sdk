@@ -2,20 +2,14 @@ package ai.evolv.android_sdk;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.google.gson.internal.LinkedTreeMap;
 
-import org.json.JSONArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -46,7 +40,6 @@ class EvolvContextImpl implements EvolvContext {
     private EvolvConfig evolvConfig;
     private EvolvStoreImpl evolvStore;
     private WaitForIt waitForIt;
-    //private CopyOnWriteArrayList<String> flattened = new CopyOnWriteArrayList<>();
     private JsonObject flattened = new JsonObject();
 
     public EvolvContextImpl(EvolvStoreImpl evolvStore, WaitForIt waitForIt) {
@@ -194,21 +187,12 @@ class EvolvContextImpl implements EvolvContext {
     public JsonElement get(String key) {
         ensureInitialized();
 
-        if (key.equals("confirmations") || key.equals("contaminations")) {
-            LOGGER.error("[Deprecation] Retrieving confirmations and contaminations from the Evolv context with keys \"confirmations\"," +
-                    "and \"contaminations\" is deprecated. Please use \"experiments.confirmations\" and \"experiments.contaminations\" instead.");
-        }
-// TODO: 27.07.2021 question: JS SDK - "return objects.getValueForKey(key, remoteContext) || objects.getValueForKey(key, localContext);"
-//  need to understand which cases should return value local or remote (if local and remote contexts aren't emprty)
-
-        if(localContext.size() != 0){
-            return helper.getValueForKey(key, localContext).getAsJsonObject();
+        if(remoteContext.size() != 0){
+            JsonElement element = helper.getValueForKey(key, remoteContext);
+            return element;
         }
 
-
-        JsonElement element = helper.getValueForKey(key, remoteContext);
-        return element;
-
+        return helper.getValueForKey(key, localContext).getAsJsonObject();
     }
 
     // TODO: 27.07.2021 need to test!
@@ -311,7 +295,7 @@ class EvolvContextImpl implements EvolvContext {
             if (flattenedBefore.get(key) == null) {
 
                 JsonObject object = new JsonObject();
-                object.addProperty("type",CONTEXT_INITIALIZED);
+                object.addProperty("type",CONTEXT_VALUE_ADDED);
                 object.addProperty("key",key);
                 object.add("flattened_key",flattened.get(key));
                 object.addProperty("local",local);
@@ -321,7 +305,7 @@ class EvolvContextImpl implements EvolvContext {
             }else if (flattenedBefore.get(key) != context.get(key)) {
 
                 JsonObject object = new JsonObject();
-                object.addProperty("type",CONTEXT_INITIALIZED);
+                object.addProperty("type",CONTEXT_VALUE_CHANGED);
                 object.addProperty("key",key);
                 object.add("flattened_key",flattened.get(key));
                 object.add("flattenedBefore_key",flattenedBefore.get(key));
@@ -334,10 +318,10 @@ class EvolvContextImpl implements EvolvContext {
     }
 
     private void flatten(JsonElement map) {
-        recurseflatten(map, "");
+        recurseFlatten(map, "");
     }
 
-    private String recurseflatten(JsonElement current, String parentKey) {
+    private String recurseFlatten(JsonElement current, String parentKey) {
         Set<String> keys = current.getAsJsonObject().keySet();
 
         Iterator<String> iterator = keys.iterator();
@@ -358,7 +342,7 @@ class EvolvContextImpl implements EvolvContext {
                 if (element.isJsonObject()) {
                     if (element.getAsJsonObject().size() != 0) {
                         element = current.getAsJsonObject().get(key);
-                        items.add(key.concat(recurseflatten(element, newKey)));
+                        items.add(key.concat(recurseFlatten(element, newKey)));
                     }
                 }
             }
@@ -403,9 +387,7 @@ class EvolvContextImpl implements EvolvContext {
     }
 
     private boolean removeValueForKey(String key, JsonObject map) {
-        recurseRemoveValue(key.split(Pattern.quote(".")),0,map);
-
-        return false;
+        return recurseRemoveValue(key.split(Pattern.quote(".")),0,map);
     }
 
     private boolean recurseRemoveValue(String[] keys, int index, JsonObject map) {
