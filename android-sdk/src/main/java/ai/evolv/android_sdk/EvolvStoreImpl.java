@@ -273,7 +273,7 @@ class EvolvStoreImpl {
     // TODO: 11.06.2021 need a unit test
     void reevaluateContext() {
 
-        if (config.isJsonNull()) {
+        if (config.isJsonNull() || config.size() == 0) {
             return;
         }
         if (reevaluatingContext) {
@@ -287,7 +287,7 @@ class EvolvStoreImpl {
         if (result.size() != 0) {
             effectiveGenome = result.get("effectiveGenome").getAsJsonObject();
             activeEids.add(result.get("activeEids"));
-        }else{
+        } else {
             clearActiveGenome();
             clearActiveEids();
         }
@@ -302,7 +302,9 @@ class EvolvStoreImpl {
                 activeKeys.addProperty(activeKey.getKey(), activeKey.getValue().getAsString());
 
                 if (effectiveGenome != null) {
-                    JsonElement pruned = helper.prune(effectiveGenome, active);
+                  JsonObject value = effectiveGenome.get( "activeGenome_"+ expKeyStates.getKey()).getAsJsonObject();
+
+                    JsonElement pruned = helper.prune(value, active);
 
                     for (String key : pruned.getAsJsonObject().keySet()) {
                         activeVariants.addProperty("activeVariants_" + key, key.concat(":" + pruned.getAsJsonObject().get(key).hashCode()));
@@ -388,7 +390,7 @@ class EvolvStoreImpl {
 
         JsonObject effectiveObject = new JsonObject();
         JsonObject effectiveGenome = new JsonObject();
-        JsonObject activeEids = new JsonObject();
+        JsonArray activeEids = new JsonArray();
 
         for (Map.Entry<String, JsonElement> entryExp : expsKeyStates.entrySet()) {
 
@@ -396,7 +398,7 @@ class EvolvStoreImpl {
             JsonObject expKeyStates = entryExp.getValue().getAsJsonObject();
 
             JsonObject active = new JsonObject();
-            if(expKeyStates.has("active")){
+            if (expKeyStates.has("active")) {
                 active = expKeyStates.get("active").getAsJsonObject();
             }
 
@@ -407,12 +409,15 @@ class EvolvStoreImpl {
                 JsonObject activeGenome = helper.filter(cloneObject, active);
 
                 if (activeGenome.keySet().size() != 0) {
-                    for (Map.Entry<String, JsonElement> entry : activeGenome.entrySet()) {
-                        effectiveObject.addProperty("activeEids", eid);
-                        effectiveObject.add("effectiveGenome", activeGenome.deepCopy());
-                    }
+                    activeEids.add(eid);
+                    effectiveGenome.add("activeGenome_" + eid,activeGenome.deepCopy());
+
                 }
             }
+        }
+        if (activeEids.size() != 0 || effectiveGenome.size() != 0) {
+            effectiveObject.add("activeEids", activeEids);
+            effectiveObject.add("effectiveGenome", effectiveGenome);
         }
 
         return effectiveObject;
@@ -518,7 +523,7 @@ class EvolvStoreImpl {
 
     private void updateGenome(JsonArray value) {
 
-        JsonObject allocs = new JsonObject();
+        JsonArray allocs = new JsonArray();
         JsonObject exclusions = new JsonObject();
 
         allocations = value;
@@ -531,7 +536,7 @@ class EvolvStoreImpl {
             clean.remove(GENOME_STRING);
             clean.remove(AUDIENCE_QUERY_STRING);
 
-            allocs.add("allocs", clean);
+            allocs.add(clean);
 
             if (clean.has("excluded")) {
                 if (clean.get("excluded").getAsBoolean()) {
@@ -756,7 +761,7 @@ class EvolvStoreImpl {
             JsonObject entryObject = entryExperiment.getValue().getAsJsonObject().get("entry").getAsJsonObject();
 
             if (entryObject.size() != 0) {
-                    eids.add(entryExperiment.getKey());
+                eids.add(entryExperiment.getKey());
             }
         }
         return eids;
@@ -912,12 +917,15 @@ class EvolvStoreImpl {
         return helper.getValueForKey(key, config);
     }
 
-    // TODO: 07.07.2021 need to test!-
     JsonElement getValue(String key) {
-        for (String expKey : effectiveGenome.keySet()) {
-            return helper.getValueForKey(key, effectiveGenome);
+        for (Map.Entry<String, JsonElement> genomeEntry : effectiveGenome.entrySet()) {
+            JsonElement element = helper.getValueForKey(key, genomeEntry.getValue());
+            if(element == null){
+                continue;
+            }else{
+                return element;
+            }
         }
-
         return JsonNull.INSTANCE;
     }
 

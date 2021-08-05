@@ -52,7 +52,7 @@ class EvolvContextImpl implements EvolvContext {
     }
 
     public void setRemoteContext(JsonObject remoteContext) {
-        this.remoteContext = remoteContext ;
+        this.remoteContext = remoteContext;
     }
 
     @Override
@@ -93,8 +93,8 @@ class EvolvContextImpl implements EvolvContext {
 //        objects.add(resolve);
 
         JsonObject object = new JsonObject();
-        object.addProperty("type",CONTEXT_INITIALIZED);
-        object.add("value",resolve);
+        object.addProperty("type", CONTEXT_INITIALIZED);
+        object.add("value", resolve);
 
 
         waitForIt.emit(this, CONTEXT_INITIALIZED, object);
@@ -105,12 +105,12 @@ class EvolvContextImpl implements EvolvContext {
     public boolean set(String key, Object value, boolean local) {
         //checking incoming type
         JsonElement jsonValue = null;
-        if(value instanceof JsonElement){
+        if (value instanceof JsonElement) {
             jsonValue = (JsonElement) value;
-        }else if(value instanceof String){
+        } else if (value instanceof String) {
             // TODO: use a non-depreciated method "JsonParser"
             JsonParser parser = new JsonParser();
-            String modifyValue = ((String)value).replaceAll(" ",".");
+            String modifyValue = ((String) value).replaceAll(" ", ".");
             jsonValue = parser.parse(modifyValue);
         }
 
@@ -120,7 +120,7 @@ class EvolvContextImpl implements EvolvContext {
         JsonElement before = helper.getValueForKey(key, context);
 
         // TODO: 04.06.2021 checking value type (because "before" and "value" need to compare correctly)
-        if(before != null) {
+        if (before != null) {
             if (before == value || before.toString().equals(value)) {
                 return false;
             }
@@ -130,26 +130,26 @@ class EvolvContextImpl implements EvolvContext {
 
         JsonObject updated = this.resolve();
 
-        if (before == null ) {
+        if (before == null) {
 
             JsonObject objects = new JsonObject();
-            objects.addProperty("type",CONTEXT_VALUE_ADDED);
-            objects.addProperty("key",key);
-            objects.add("value",jsonValue);
-            objects.addProperty("local",false);
-            objects.add("updated",updated);
+            objects.addProperty("type", CONTEXT_VALUE_ADDED);
+            objects.addProperty("key", key);
+            objects.add("value", jsonValue);
+            objects.addProperty("local", false);
+            objects.add("updated", updated);
 
 
             waitForIt.emit(this, CONTEXT_VALUE_ADDED, objects);
         } else {
 
             JsonObject objects = new JsonObject();
-            objects.addProperty("type",CONTEXT_VALUE_CHANGED);
-            objects.addProperty("key",key);
-            objects.add("value",jsonValue);
-            objects.add("before",before);
-            objects.addProperty("local",false);
-            objects.add("updated",updated);
+            objects.addProperty("type", CONTEXT_VALUE_CHANGED);
+            objects.addProperty("key", key);
+            objects.add("value", jsonValue);
+            objects.add("before", before);
+            objects.addProperty("local", false);
+            objects.add("updated", updated);
 
 
             waitForIt.emit(this, CONTEXT_VALUE_CHANGED, objects);
@@ -183,48 +183,25 @@ class EvolvContextImpl implements EvolvContext {
         }
     }
 
+    // TODO: 04.08.2021 logic is changed need new test
     @Override
     public JsonElement get(String key) {
         ensureInitialized();
 
-        if(remoteContext.size() != 0){
-            JsonElement element = helper.getValueForKey(key, remoteContext);
+        JsonElement element = helper.getValueForKey(key, remoteContext);
+
+        if (element == null || element.isJsonNull()) {
+            return helper.getValueForKey(key, localContext).getAsJsonObject();
+        } else {
             return element;
         }
-
-        return helper.getValueForKey(key, localContext).getAsJsonObject();
     }
 
     // TODO: 27.07.2021 need to test!
     @Override
     public boolean pushToArray(String key, String value, boolean local) {
         int limit = DEFAULT_QUEUE_LIMIT;
-
-        ensureInitialized();
-        JsonObject context = local ? localContext : remoteContext;
-
-        JsonArray newArray = new JsonArray();
-        JsonObject element = new JsonObject();
-
-        JsonElement originalArray = helper.getValueForKey(key, context);
-
-        if(originalArray == null){
-            LOGGER.error("The " + "\"" + key + "\"" +  " does not have a suitable value ");
-            return false;
-        }else if(originalArray.isJsonPrimitive()){
-            element.addProperty(key,value);
-        }else if(originalArray.isJsonObject()){
-            element.add(key,originalArray);
-        }
-
-        newArray.add(element);
-
-        for (int i = 0; i < newArray.size() ; i++) {
-            if(i > limit){
-                newArray.remove(i);
-            }
-        }
-        return set(key,newArray,local);
+        return pushToArray(key,value,local,limit);
     }
 
     @Override
@@ -237,23 +214,23 @@ class EvolvContextImpl implements EvolvContext {
 
         JsonElement originalArray = helper.getValueForKey(key, context);
 
-        if(originalArray == null){
-            LOGGER.error("The " + "\"" + key + "\"" +  " does not have a suitable value ");
+        if (originalArray == null) {
+            LOGGER.error("The " + "\"" + key + "\"" + " does not have a suitable value ");
             return false;
-        }else if(originalArray.isJsonPrimitive()){
-            element.addProperty(key,value);
-        }else if(originalArray.isJsonObject()){
-            element.add(key,originalArray);
+        } else if (originalArray.isJsonPrimitive()) {
+            element.addProperty(key, value);
+        } else if (originalArray.isJsonObject()) {
+            element.add(key, originalArray);
         }
 
         newArray.add(element);
 
-        for (int i = 0; i < newArray.size() ; i++) {
-            if(i > limit){
-               newArray.remove(i);
+        for (int i = 0; i < newArray.size(); i++) {
+            if (i > limit) {
+                newArray.remove(i);
             }
         }
-        return set(key,newArray,local);
+        return set(key, newArray, local);
     }
 
     @Override
@@ -267,6 +244,14 @@ class EvolvContextImpl implements EvolvContext {
     public void update(JsonObject update, boolean local) {
         ensureInitialized();
         JsonObject context = local ? localContext : remoteContext;
+
+        String incomingKey  = "";
+        JsonArray incomingArray  = new JsonArray();
+        for (Map.Entry<String, JsonElement> entry : update.entrySet()) {
+            incomingKey = entry.getKey();
+            incomingArray = entry.getValue().getAsJsonArray();
+        }
+
         flatten(update);
 
         JsonObject flattenedBefore = new JsonObject();
@@ -276,15 +261,10 @@ class EvolvContextImpl implements EvolvContext {
         }
 
         if (local) {
-
-            for (Map.Entry<String, JsonElement> entry : update.entrySet()) {
-                localContext.add(entry.getKey(),entry.getValue());
-            }
+            set(incomingKey,incomingArray,true);
             context = localContext;
         } else {
-            for (Map.Entry<String, JsonElement> entry : update.entrySet()) {
-                remoteContext.add(entry.getKey(),entry.getValue());
-            }
+            set(incomingKey,incomingArray,false);
             context = remoteContext;
         }
 
@@ -365,20 +345,20 @@ class EvolvContextImpl implements EvolvContext {
 
         boolean removed = local || remote;
 
-        if(removed){
-           JsonObject updated = this.resolve();
+        if (removed) {
+            JsonObject updated = this.resolve();
 
             JsonObject objectValueRemoved = new JsonObject();
-            objectValueRemoved.addProperty("type",CONTEXT_VALUE_REMOVED);
-            objectValueRemoved.addProperty("key",key);
-            objectValueRemoved.addProperty("remote",!remote);
-            objectValueRemoved.add("updated",updated);
+            objectValueRemoved.addProperty("type", CONTEXT_VALUE_REMOVED);
+            objectValueRemoved.addProperty("key", key);
+            objectValueRemoved.addProperty("remote", !remote);
+            objectValueRemoved.add("updated", updated);
 
             JsonObject objectContextChanged = new JsonObject();
-            objectContextChanged.addProperty("type",CONTEXT_VALUE_REMOVED);
-            objectContextChanged.add("updated",updated);
+            objectContextChanged.addProperty("type", CONTEXT_VALUE_REMOVED);
+            objectContextChanged.add("updated", updated);
 
-            waitForIt.emit(this, CONTEXT_VALUE_REMOVED,objectValueRemoved);
+            waitForIt.emit(this, CONTEXT_VALUE_REMOVED, objectValueRemoved);
             waitForIt.emit(this, CONTEXT_CHANGED, objectContextChanged);
         }
 
@@ -387,7 +367,7 @@ class EvolvContextImpl implements EvolvContext {
     }
 
     private boolean removeValueForKey(String key, JsonObject map) {
-        return recurseRemoveValue(key.split(Pattern.quote(".")),0,map);
+        return recurseRemoveValue(key.split(Pattern.quote(".")), 0, map);
     }
 
     private boolean recurseRemoveValue(String[] keys, int index, JsonObject map) {
@@ -398,12 +378,12 @@ class EvolvContextImpl implements EvolvContext {
             return true;
         }
 
-        if (!(map.has(key))){
+        if (!(map.has(key))) {
             return false;
         }
 
-    boolean removed = recurseRemoveValue(keys, index + 1, map.get(key).getAsJsonObject());
-        if (removed &&  map.get(key).getAsJsonObject().keySet().size() == 0) {
+        boolean removed = recurseRemoveValue(keys, index + 1, map.get(key).getAsJsonObject());
+        if (removed && map.get(key).getAsJsonObject().keySet().size() == 0) {
             map.remove(key);
         }
         return removed;

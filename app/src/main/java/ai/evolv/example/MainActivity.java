@@ -54,9 +54,9 @@ public class MainActivity extends AppCompatActivity {
         // initialize the client with a stored user
         client = EvolvClientFactory.init(
                 config,
-                new EvolvParticipant("79211876_16178796481581112223332"));
+                new EvolvParticipant("79211876_16178796481581112"));
         //UserId"79211876_16178796481581112223331" - //"Default layout";"click here"
-        //UserId("79211876_16178796481581112223332") - //"Layout 1";"click here"
+        //UserId("79211876_16178796481581112") - //"Layout 1";"click here"
         //UserId("79211876_16178796481581112223337") - //"Default layout"; "click here now!"
         //UserId("79211876_16178796481581112223339") - //"Default layout"; "best button"
 
@@ -67,31 +67,36 @@ public class MainActivity extends AppCompatActivity {
         //evolvContext.set("signedin", "yes", false);
         //case 2
         evolvContext.set("authenticated","false",false);
-        //evolvContext.set("text","cancel",false);
-        //evolvContext.set("device","mobile",false);
+        evolvContext.set("device","mobile",false);
         //case 3
         evolvContext.set("Age", "26", false);
         evolvContext.set("Sex", "female", false);
-        evolvContext.set("view", "next", false);
+        evolvContext.set("view", "home", false);
 
-//        client.subscribeGet("next.layout", "Default Layout", (EvolvAction<JsonElement>) value ->
-//                runOnUiThread(() -> {
-//                    switch (value.getAsString()) {
-//                        case "Layout 1":
-//                            setContentView(R.layout.layout_one);
-//                            ConstraintLayout constraintLayout_one = findViewById(R.id.constraintlayout_one);
-//                            constraintLayout_one.setBackgroundColor(Color.GREEN);
-//                            break;
-//                        case "Default Layout":
-//                            setContentView(R.layout.layout_default);
-//                            ConstraintLayout constraintLayout_default = findViewById(R.id.constraintlayout_default);
-//                            constraintLayout_default.setBackgroundColor(Color.MAGENTA);
-//                            break;
-//                        default:
-//                            setContentView(R.layout.layout_default);
-//                            break;
-//                    }
-//                }));
+        client.subscribeGet("next.layout", "Default Layout", (EvolvAction<JsonElement>) value ->
+                runOnUiThread(() -> {
+                    switch (value.getAsString()) {
+                        case "Layout 1":
+                            setContentView(R.layout.layout_one);
+                            ConstraintLayout constraintLayout_one = findViewById(R.id.constraintlayout_one);
+                            constraintLayout_one.setBackgroundColor(Color.GREEN);
+                            Log.d("evolv_subscribeGet_next", "element: " + value);
+
+                            break;
+                        case "Default Layout":
+                            setContentView(R.layout.layout_default);
+                            ConstraintLayout constraintLayout_default = findViewById(R.id.constraintlayout_default);
+                            constraintLayout_default.setBackgroundColor(Color.MAGENTA);
+                            Log.d("evolv_subscribeGet_next", "element: " + value);
+
+                            break;
+                        default:
+                            setContentView(R.layout.layout_default);
+                            Log.d("evolv_subscribeGet_next", "element: " + value);
+
+                            break;
+                    }
+                }));
 
         client.subscribeGet("home.cta_text", "default text", (EvolvAction<JsonElement>) value ->
                 runOnUiThread(() -> {
@@ -103,9 +108,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void pressHome(View view) {
 // test area -->
-        JsonObject activeKeys = client.getActiveKeys();
-        Log.d("evolv_activeKeys", "activeKeys: " + activeKeys.toString());
-
+client.confirm();
 
 // TODO: 28.07.2021 commented data   -->
         //////////////////remove (context)//////////////////

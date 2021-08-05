@@ -14,7 +14,9 @@ import com.google.gson.JsonObject;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import ai.evolv.android_sdk.evolvinterface.EvolvContext;
 import okhttp3.MediaType;
@@ -30,7 +32,6 @@ class EvolvEmitter {
     private boolean blockTransmit;
     private JsonArray messages = new JsonArray();
     private int timer;
-    private final Handler handler;
     private EvolvConfig evolvConfig;
     private EvolvParticipant participant;
 
@@ -41,7 +42,6 @@ class EvolvEmitter {
         this.evolvConfig = evolvConfig;
         this.participant = participant;
         this.blockTransmit = evolvConfig.isBufferEvents();
-        handler = new Handler(Looper.getMainLooper());
 
     }
 
@@ -54,7 +54,7 @@ class EvolvEmitter {
             @Override
             public void run() {
                 try {
-                    Log.d("EvolvEmitter_data", "response: " + responseFuture.toString());
+                    Log.d("EvolvEmitter_events", "response: " + responseFuture.toString());
                 } catch (Exception e) {
                     Log.d("EvolvEmitter_data", "There was a failure while retrieving the allocations.", e);
                 }
@@ -123,7 +123,7 @@ class EvolvEmitter {
 
                 RequestBody formBody = wrapMessagesData(smallBatch);
                 // TODO: 16.07.2021 uncomment (do not spam the server during testing)
-                send(endpoint, formBody, sync);
+                //send(endpoint, formBody, sync);
                 break;
             }
         }
@@ -135,8 +135,8 @@ class EvolvEmitter {
         RequestBody formBody = RequestBody.create(JSON, "{\"uid\": " + participant.getUserId() +
                 ",\"messages\":" + messages + " }");
 
-        Log.d("EvolvEmitter_data", "1: " + "{\\\"uid\\\": \" + participant.getUserId() +\n" +
-                "                \",\\\"messages\\\":\" + messages + \" }");
+//        Log.d("EvolvEmitter_data", "1: " + "{\\\"uid\\\": \" + participant.getUserId() +\n" +
+//                "                \",\\\"messages\\\":\" + messages + \" }");
 
         return formBody;
     }
@@ -146,30 +146,32 @@ class EvolvEmitter {
         JsonObject payload = msgObject.get("payload").getAsJsonObject();
         String uid = gson.toJson(payload.get("uid"));
         String cid = gson.toJson(payload.get("cid"));
+        String eid = gson.toJson(payload.get("eid"));
         String type = gson.toJson(msgObject.get("type"));
         String contaminationReason = gson.toJson(payload.get("contaminationReason"));
         String timestamp = gson.toJson(msgObject.get("timestamp"));
-
 
         String contaminationReasonString = "";
         if(payload.get("contaminationReason") != null){
             contaminationReasonString = ",\"contaminationReason\":" + contaminationReason;
         }
 
-        RequestBody formBody = RequestBody.create(JSON, "{" +
-                "\"uid\":" + uid
-                + ",\"cid\":" + cid
+        RequestBody formBody = RequestBody.create(JSON, "{"
+                + "\"uid\":" + uid
+                +",\"cid\":" + cid
+                +",\"eid\":" + eid
                 + ",\"type\":" + type
                 + contaminationReasonString
                 + ",\"timestamp\":" + timestamp + " }");
 
-        Log.d("EvolvEmitter_response", "1: " + "{" +
-                "\"uid\":" + uid
-                + ",\"cid\":" + cid
-                + ",\"type\":" + type
-                + contaminationReasonString
+        //remove payload -> move eid -> upper level -> delete uid from nested payload, delete cid from nested payload
+        Log.d("EvolvEmitter_events", "1: " + "{" + "\n"
+                + "\"uid\":" + uid + "\n"
+                + "\"cid\":" + cid + "\n"
+                + "\"eid\":" + eid + "\n"
+                + ",\"type\":" + type + "\n"
+                + contaminationReasonString + "\n"
                 + ",\"timestamp\":" + timestamp + " }");
-
 
         return formBody;
     }
@@ -187,6 +189,13 @@ class EvolvEmitter {
     }
 
     private void clearMessages() {
-        for (JsonElement key : messages) messages.remove(key);
+        List<JsonElement> keys = new ArrayList<>();
+        for (JsonElement s : messages) {
+            keys.add(s);
+        }
+
+        for (JsonElement key : keys) {
+            messages.remove(key);
+        }
     }
 }
