@@ -1,5 +1,6 @@
 package ai.evolv.example;
 
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -7,6 +8,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListenableFutureTask;
@@ -14,6 +16,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 
 import java.util.Map;
@@ -28,8 +31,13 @@ import ai.evolv.android_sdk.EvolvClientFactory;
 import ai.evolv.android_sdk.EvolvConfig;
 import ai.evolv.android_sdk.EvolvParticipant;
 import ai.evolv.android_sdk.evolvinterface.EvolvContext;
+import ai.evolv.android_sdk.evolvinterface.EvolvInvocation;
 import ai.evolv.android_sdk.httpclients.HttpClient;
 import ai.evolv.android_sdk.httpclients.OkHttpClient;
+
+import static ai.evolv.android_sdk.EvolvClientImpl.INITIALIZED;
+import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_CHANGED;
+import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_INITIALIZED;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -45,119 +53,142 @@ public class MainActivity extends AppCompatActivity {
 
         // build config with custom timeout and custom allocation store
         // set client to use sandbox environment
-        EvolvConfig config = EvolvConfig.builder("8b50696b6c", httpClient) //e30a43d71c
+        EvolvConfig config = EvolvConfig.builder("dbcf75051d", httpClient) //8b50696b6c
                 .build();
 
         // initialize the client with a stored user
         client = EvolvClientFactory.init(
                 config,
-                new EvolvParticipant("79211876_16178796481581112223331"));
-                //UserId"79211876_16178796481581112223331" - //"Default layout";"click here"
-                //UserId("79211876_16178796481581112223332") - //"Layout 1";"click here"
-                //UserId("79211876_16178796481581112223337") - //"Default layout"; "click here now!"
-                //UserId("79211876_16178796481581112223339") - //"Default layout"; "best button"
+                new EvolvParticipant("79211876_16178796481581112"));
+        //UserId"79211876_16178796481581112223331" - //"Default layout";"click here"
+        //UserId("79211876_16178796481581112") - //"Layout 1";"click here"
+        //UserId("79211876_16178796481581112223337") - //"Default layout"; "click here now!"
+        //UserId("79211876_16178796481581112223339") - //"Default layout"; "best button"
 
         setContentView(R.layout.layout_default);
-        client.subscribe("next.layout", "Default Layout", layoutOption -> {
-            runOnUiThread(() -> {
-                switch (layoutOption) {
-                    case "Layout 1":
-                        setContentView(R.layout.layout_one);
-                        break;
-                    case "Default Layout":
-                        setContentView(R.layout.layout_default);
-                        break;
-                    default:
-                        setContentView(R.layout.layout_default);
-                        break;
-                }
-            });
-        });
 
-        client.subscribe("home.cta_text", "Default Message", new EvolvAction<String>() {
-            @Override
-            public void apply(String buttonText) {
-                MainActivity.this.runOnUiThread(() -> {
-                    TextView showCountTextView = MainActivity.this.findViewById(R.id.homeButton);
-                    showCountTextView.setText(buttonText);
-                });
-            }
-        });
-
-
-        evolvContext = ((EvolvClientImpl)client).getEvolvContext();
+        evolvContext = ((EvolvClientImpl) client).getEvolvContext();
         //case 1
-            //evolvContext.set("signedin","yes",false);
+        //evolvContext.set("signedin", "yes", false);
         //case 2
-            //evolvContext.set("authenticated","false",false);
-            //evolvContext.set("text","cancel",false);
-            //evolvContext.set("device","mobile",false);
+        evolvContext.set("authenticated","false",false);
+        evolvContext.set("device","mobile",false);
         //case 3
-        evolvContext.set("Age","26",false);
-        evolvContext.set("Sex","female",false);
-        evolvContext.set("view","home",false);
+        evolvContext.set("Age", "26", false);
+        evolvContext.set("Sex", "female", false);
+        evolvContext.set("view", "home", false);
 
-        // TODO: 02.06.2021 allow adding third or more orders of keys to the remote context
-        //evolvContext.set("key.test.test1","test_value",false);
+        client.subscribeGet("next.layout", "Default Layout", (EvolvAction<JsonElement>) value ->
+                runOnUiThread(() -> {
+                    switch (value.getAsString()) {
+                        case "Layout 1":
+                            setContentView(R.layout.layout_one);
+                            ConstraintLayout constraintLayout_one = findViewById(R.id.constraintlayout_one);
+                            constraintLayout_one.setBackgroundColor(Color.GREEN);
+                            Log.d("evolv_subscribeGet_next", "element: " + value);
 
-        client.getActiveKeys(new EvolvAction<JsonObject>() {
+                            break;
+                        case "Default Layout":
+                            setContentView(R.layout.layout_default);
+                            ConstraintLayout constraintLayout_default = findViewById(R.id.constraintlayout_default);
+                            constraintLayout_default.setBackgroundColor(Color.MAGENTA);
+                            Log.d("evolv_subscribeGet_next", "element: " + value);
+
+                            break;
+                        default:
+                            setContentView(R.layout.layout_default);
+                            Log.d("evolv_subscribeGet_next", "element: " + value);
+
+                            break;
+                    }
+                }));
+
+        client.subscribeGet("home.cta_text", "default text", (EvolvAction<JsonElement>) value ->
+                runOnUiThread(() -> {
+                    Log.d("evolv_subscribeGet_home", "element: " + value);
+                    TextView textView = findViewById(R.id.homeButton);
+                    textView.setText(value.getAsString());
+                }));
+
+
+        client.subscribeActiveKeys("", new EvolvAction<JsonObject>() {
             @Override
-            public void apply(JsonObject activeKeys) {
-                Log.d("evolvCallBack_", "5 MainActivity: " + activeKeys +" " + Thread.currentThread().getName());
+            public void apply(JsonObject value) {
+                Log.d("evolv_subscribe_active_", "subscribeActiveKeys : " + value);
             }
         });
 
-        client.getActiveKeys("home",new EvolvAction<JsonObject>() {
-            @Override
-            public void apply(JsonObject activeKeysPrefix) {
-                Log.d("evolvCallBack_", "6 MainActivity: " + activeKeysPrefix +" " + Thread.currentThread().getName());
-            }
-        });
-
-        client.getActiveKeys("button_color",new EvolvAction<JsonObject>() {
-            @Override
-            public void apply(JsonObject activeKeysPrefix) {
-                Log.d("evolvCallBack_", "7 MainActivity: " + activeKeysPrefix +" " + Thread.currentThread().getName());
-            }
-        });
-
-        client.get("next.layout", new EvolvAction() {
-            @Override
-            public void apply(Object value) {
-                Log.d("evolvCallBack_", "8 MainActivity: " + value +" " + Thread.currentThread().getName());
-            }
-        });
-
-
+        client.on(INITIALIZED, value -> Log.d("evolv_on_invoke", "INITIALIZED "));
+        client.on(CONTEXT_CHANGED, value -> Log.d("evolv_on_invoke", "CONTEXT_CHANGED "));
 
     }
 
     public void pressHome(View view) {
 // test area -->
 
+        
 
+// TODO: 28.07.2021 commented data   -->
+        //////////////////remove (context)//////////////////
+        //evolvContext.remove("Age");
+        //evolvContext.remove("Sex");
+
+        //////////////////set (context)//////////////////
+        //evolvContext.set("Age", "26", false);
+        //evolvContext.set("view", "home", false);
+        //evolvContext.set("view", "next", false);
         //evolvContext.set("signedin","yes",false);
-        evolvContext.set("view","next",false);
 
+        //////////////////confirm (client)//////////////////
+        //client.confirm();
 
-//        // TODO: 19.07.2021 uncomment
-//        //JsonObject activeKeys = client.getActiveKeys();
-//        JsonObject activeKeys = null;
-//        for (Map.Entry<String, JsonElement> s : activeKeys.entrySet()) { Log.d("1_activeKeys_", "Active Keys: " +s.getValue()); }
-//
-////        JsonObject activeKeysPrefix = client.getActiveKeys("home");
-////        for (Map.Entry<String, JsonElement> s : activeKeysPrefix.entrySet()) {  Log.d("activeKeys_", "activeKeysPrefix: " + s.getValue()); }
-//
-//        client.clearActiveKeys("home");
-//
-//        for (Map.Entry<String, JsonElement> s : activeKeys.entrySet()) { Log.d("1_activeKeys_", "Active Keys: " +s.getValue()); }
-//
-//        //client.reevaluateContext();
-//
-//        //String value = client.get("home.cta_text");
-//        JsonElement value1 = client.get("home");
-//        Log.d("1_activeKeys_", "GET: " +value1);
-//
+        //////////////////contaminate (client)//////////////////
+        //JsonObject details = new JsonObject();
+        //details.addProperty("reason","error-thrown");
+        //details.addProperty("details","testing contamination");
+        //client.contaminate(details,false);
+
+        //////////////////getActiveKeys (client)//////////////////
+        //JsonObject activeKeys = client.getActiveKeys();
+        //Log.d("evolv_activeKeys", "activeKeys: " + activeKeys.toString());
+
+        //////////////////get (client)//////////////////
+        //JsonElement getValue = client.get("home");
+        //Log.d("evolv_getvalue", "value: " + getValue.toString());
+
+        //////////////////get (context)//////////////////
+        //JsonElement element = evolvContext.get("experiments.allocations");
+        //Log.d("evolv_context_get", "GET: " + element);
+
+        //////////////////contains (context)//////////////////
+        //boolean containValue = evolvContext.contains("Age");
+        //Log.d("evolv_containValue", "GET: " + containValue);
+
+        //////////////////isActive (client)//////////////////
+        //boolean isActive = client.isActive("home");
+
+        //////////////////subscribe (client)//////////////////
+        //client.subscribeIsActive("next", new EvolvAction<Boolean>() {
+        //    @Override
+        //    public void apply(Boolean value) {
+        //        Log.d("evolv_subscribe_Active", "subscribeActiveKeys : " + value);
+        //    }
+        //});
+
+        //client.subscribeActiveKeys("", new EvolvAction<JsonObject>() {
+        //    @Override
+        //    public void apply(JsonObject value) {
+        //        Log.d("evolv_subscribe_home", "subscribeActiveKeys : " + value);
+        //    }
+        //});
+
+        //client.subscribeActiveKeys("button_color", new EvolvAction<JsonObject>() {
+        //    @Override
+        //    public void apply(JsonObject value) {
+        //        Log.d("evolv_subscribe_btn", "subscribeActiveKeys (prefix): " + value);
+        //    }
+        //});
+
 // test area <--
     }
 }

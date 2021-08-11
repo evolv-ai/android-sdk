@@ -78,8 +78,7 @@ class Allocator {
                 .add("uid", participant.getUserId())
                 .build();
 
-        ListenableFuture<String> responseFuture = httpClient.post(createAllocationsUrl(),
-                formBody);
+        ListenableFuture<String> responseFuture = httpClient.post(createAllocationsUrl(), formBody);
         return responseFuture;
     }
 

@@ -15,9 +15,8 @@ public interface EvolvClient {
      * @param key          The key of the value to retrieve.
      * @return a value associated with the given key
      */
-    // TODO: 19.07.2021 uncomment (callBack testing)
-    //JsonElement get(String key);
-    void get(String key,EvolvAction action);
+    JsonElement get(String key);
+
 
     /**
      * Retrieves a value from Evolv asynchronously and applies some custom action.
@@ -48,14 +47,12 @@ public interface EvolvClient {
     void confirm();
 
     /**
-     * Sends a contamination event to Evolv.
-     * <p>
-     * Method produces a contamination event which will contaminate the
-     * participant's allocation. Method will not do anything in the event
-     * that the allocation timed out or failed.
-     * </p>
+     * Marks a consumer as unsuccessfully retrieving and / or applying requested values, making them ineligible for inclusion in optimization statistics.
+     *
+     * @param details   Optional. Information on the reason for contamination. If provided, the object should contain a reason. Optionally, a 'details' value should be included for extra debugging info
+     * @param allExperiments If true, the user will be excluded from all optimizations, including optimization not applicable to this page
      */
-    void contaminate();
+    void contaminate(JsonObject details, boolean allExperiments);
 
     /**
      * Check all active keys that start with the specified prefix.
@@ -63,19 +60,25 @@ public interface EvolvClient {
      * @param prefix a unique key identifying a specific value in the participants
      *               allocation
      */
-    // TODO: 19.07.2021 uncomment (callBack testing)
-    //JsonObject getActiveKeys(String prefix);
-    void getActiveKeys(String prefix,EvolvAction action);
+    JsonObject getActiveKeys(String prefix);
 
     /**
      * Check all active keys that start with the specified prefix.
      * allocation
      */
-    // TODO: 19.07.2021 uncomment (callBack testing)
-    //JsonObject getActiveKeys();
-    void getActiveKeys(EvolvAction action);
+    JsonObject getActiveKeys();
 
+    JsonElement activeEntryPoints();
 
+    //test subscribeActiveKeys
+    void subscribeActiveKeys(String prefix,EvolvAction action);
+
+    //test subscribeGet
+    void subscribeGet(String key,String defaultValue, EvolvAction action);
+
+    void subscribeIsActive(String key, EvolvAction action);
+
+    void subscribeActiveEntryPoints(EvolvAction action);
 
     /**
      * Initializes the client with required context information.
@@ -90,6 +93,14 @@ public interface EvolvClient {
      * Reevaluates the current context..
      */
     void reevaluateContext();
+
+    /**
+     * Add listeners to lifecycle events that take place in to client.
+     *
+     * @param topic     The event topic on which the listener should be invoked.
+     * @param listener  The listener to be invoked for the specified topic.
+     */
+    void on(String topic, EvolvInvocation listener);
 
     /**
      * Preload all keys under under the specified prefixes.
