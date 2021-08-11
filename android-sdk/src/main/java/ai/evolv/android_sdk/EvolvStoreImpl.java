@@ -115,6 +115,10 @@ class EvolvStoreImpl {
         setVersion();
     }
 
+    public Allocator getAllocator() {
+        return allocator;
+    }
+
     private void setVersion() {
         version = evolvConfig.getVersion() != 0 ? evolvConfig.getVersion() : DEFAULT_VERSION;
     }
@@ -873,23 +877,14 @@ class EvolvStoreImpl {
         boolean configOnly = false;
         boolean immediate = false;
 
-        configKeyStates.needed.addAll(prefixes);
-        if (!configOnly) {
-            genomeKeyStates.needed.addAll(prefixes);
-        }
-
-        pull(immediate);
+        preload(prefixes,configOnly,immediate);
     }
 
     // TODO: 07.07.2021 need to test?
     void preload(ArrayList<String> prefixes, boolean configOnly) {
         boolean immediate = false;
 
-        configKeyStates.needed.addAll(prefixes);
-        if (!configOnly) {
-            genomeKeyStates.needed.addAll(prefixes);
-        }
-        pull(immediate);
+        preload(prefixes,configOnly,immediate);
     }
 
     // TODO: 07.07.2021 need to test?

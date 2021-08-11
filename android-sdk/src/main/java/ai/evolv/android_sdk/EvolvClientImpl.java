@@ -182,112 +182,108 @@ public class EvolvClientImpl implements EvolvClient {
     @Override
     public void confirm() {
 
-        waitForIt.waitFor(evolvContext, EFFECTIVE_GENOME_UPDATED, new EvolvInvocation() {
-            @Override
-            public void invoke(Object value) {
-                JsonObject remoteContext = ((EvolvContextImpl) evolvContext).getRemoteContext();
-                JsonElement allocations = JsonNull.INSTANCE;
+        waitForIt.waitFor(evolvContext, EFFECTIVE_GENOME_UPDATED, value -> {
+            JsonObject remoteContext = ((EvolvContextImpl) evolvContext).getRemoteContext();
+            JsonElement allocations = JsonNull.INSTANCE;
 
-                if (remoteContext.has("experiments")) {
-                    JsonObject experiments = remoteContext.get("experiments").getAsJsonObject();
-                    if (experiments.has("allocations")) {
-                        allocations = experiments.get("allocations").getAsJsonArray();
-                    }
+            if (remoteContext.has("experiments")) {
+                JsonObject experiments = remoteContext.get("experiments").getAsJsonObject();
+                if (experiments.has("allocations")) {
+                    allocations = experiments.get("allocations").getAsJsonArray();
                 }
-
-                if (allocations.equals(JsonNull.INSTANCE)
-                        || evolvStore.config.size() == 0
-                        || allocations.getAsJsonArray().size() == 0) {
-                    return;
-                }
-
-                JsonArray entryPointEids = evolvStore.activeEntryPoints();
-
-                if (entryPointEids.size() == 0) {
-                    return;
-                }
-
-                JsonArray confirmations = new JsonArray();
-                if (remoteContext.has("experiments")) {
-                    JsonObject experiments = remoteContext.get("experiments").getAsJsonObject();
-                    if (experiments.has("confirmations")) {
-                        confirmations = experiments.get("confirmations").getAsJsonArray();
-                    }
-                }
-
-                JsonArray confirmedCids = new JsonArray();
-                for (JsonElement entry : confirmations) {
-                    confirmedCids.add(entry.getAsJsonObject().get("cid"));
-                }
-
-                JsonArray contaminations = new JsonArray();
-
-                if (remoteContext.has("experiments")) {
-                    JsonObject experiments = remoteContext.get("experiments").getAsJsonObject();
-                    if (experiments.has("contaminations")) {
-                        contaminations = experiments.get("contaminations").getAsJsonArray();
-                    }
-                }
-
-                JsonArray contaminatedCids = new JsonArray();
-                for (JsonElement entry : contaminations) {
-                    contaminatedCids.add(entry.getAsJsonObject().get("cid"));
-                }
-
-                JsonArray confirmableAllocations = new JsonArray();
-                for (JsonElement alloc : allocations.getAsJsonArray()) {
-
-                    JsonObject allocObject = alloc.getAsJsonObject();
-                    String cid = allocObject.get("cid").getAsString();
-                    String eid = allocObject.get("eid").getAsString();
-
-                    if (!hasConfirmedCids(confirmedCids, cid)
-                            && !hasContaminatedCids(contaminatedCids, cid)
-                            && hasActiveEids(evolvStore.activeEids, eid)) {
-                        confirmableAllocations.add(alloc);
-                    }
-                }
-
-                if (confirmableAllocations.size() == 0) {
-                    return;
-                }
-
-                long timestamp = (new Date()).getTime();
-                JsonArray contextConfirmations = new JsonArray();
-
-                for (JsonElement alloc : confirmableAllocations) {
-                    JsonObject contextConfirmationsObject = new JsonObject();
-                    contextConfirmationsObject.addProperty("cid", alloc.getAsJsonObject().get("cid").getAsString());
-                    contextConfirmationsObject.addProperty("timestamp", timestamp);
-
-                    contextConfirmations.add(contextConfirmationsObject);
-                }
-
-                if (confirmations.size() != 0) {
-                    contextConfirmations.add(confirmations);
-                }
-                JsonArray newConfirmations = contextConfirmations.deepCopy();
-
-                JsonObject updateObject = new JsonObject();
-                updateObject.add("experiments.confirmations", newConfirmations);
-
-                evolvContext.update(updateObject, false);
-
-                for (JsonElement alloc : confirmableAllocations) {
-
-                    JsonObject payload = new JsonObject();
-                    payload.addProperty("uid", alloc.getAsJsonObject().get("uid").getAsString());
-                    payload.addProperty("eid", alloc.getAsJsonObject().get("eid").getAsString());
-                    payload.addProperty("cid", alloc.getAsJsonObject().get("cid").getAsString());
-                    //payload.add("context", ((EvolvContextImpl) evolvContext).getRemoteContext());
-
-                    eventBeacon.emit("confirmation", payload, false);
-                }
-
-                eventBeacon.flush();
-
-                waitForIt.emit(evolvContext, CONFIRMED, new JsonObject());
             }
+
+            if (allocations.equals(JsonNull.INSTANCE)
+                    || evolvStore.config.size() == 0
+                    || allocations.getAsJsonArray().size() == 0) {
+                return;
+            }
+
+            JsonArray entryPointEids = evolvStore.activeEntryPoints();
+
+            if (entryPointEids.size() == 0) {
+                return;
+            }
+
+            JsonArray confirmations = new JsonArray();
+            if (remoteContext.has("experiments")) {
+                JsonObject experiments = remoteContext.get("experiments").getAsJsonObject();
+                if (experiments.has("confirmations")) {
+                    confirmations = experiments.get("confirmations").getAsJsonArray();
+                }
+            }
+
+            JsonArray confirmedCids = new JsonArray();
+            for (JsonElement entry : confirmations) {
+                confirmedCids.add(entry.getAsJsonObject().get("cid"));
+            }
+
+            JsonArray contaminations = new JsonArray();
+
+            if (remoteContext.has("experiments")) {
+                JsonObject experiments = remoteContext.get("experiments").getAsJsonObject();
+                if (experiments.has("contaminations")) {
+                    contaminations = experiments.get("contaminations").getAsJsonArray();
+                }
+            }
+
+            JsonArray contaminatedCids = new JsonArray();
+            for (JsonElement entry : contaminations) {
+                contaminatedCids.add(entry.getAsJsonObject().get("cid"));
+            }
+
+            JsonArray confirmableAllocations = new JsonArray();
+            for (JsonElement alloc : allocations.getAsJsonArray()) {
+
+                JsonObject allocObject = alloc.getAsJsonObject();
+                String cid = allocObject.get("cid").getAsString();
+                String eid = allocObject.get("eid").getAsString();
+
+                if (!hasConfirmedCids(confirmedCids, cid)
+                        && !hasContaminatedCids(contaminatedCids, cid)
+                        && hasEntryPointEids(evolvStore.activeEntryPoints(), eid)) {
+                    confirmableAllocations.add(alloc);
+                }
+            }
+
+            if (confirmableAllocations.size() == 0) {
+                return;
+            }
+
+            long timestamp = (new Date()).getTime();
+            JsonArray contextConfirmations = new JsonArray();
+
+            for (JsonElement alloc : confirmableAllocations) {
+                JsonObject contextConfirmationsObject = new JsonObject();
+                contextConfirmationsObject.addProperty("cid", alloc.getAsJsonObject().get("cid").getAsString());
+                contextConfirmationsObject.addProperty("timestamp", timestamp);
+
+                contextConfirmations.add(contextConfirmationsObject);
+            }
+
+            if (confirmations.size() != 0) {
+                contextConfirmations.add(confirmations);
+            }
+            JsonArray newConfirmations = contextConfirmations.deepCopy();
+
+            JsonObject updateObject = new JsonObject();
+            updateObject.add("experiments.confirmations", newConfirmations);
+
+            evolvContext.update(updateObject, false);
+
+            for (JsonElement alloc : confirmableAllocations) {
+
+                JsonObject payload = new JsonObject();
+                payload.addProperty("uid", alloc.getAsJsonObject().get("uid").getAsString());
+                payload.addProperty("eid", alloc.getAsJsonObject().get("eid").getAsString());
+                payload.addProperty("cid", alloc.getAsJsonObject().get("cid").getAsString());
+
+                eventBeacon.emit("confirmation", payload, false);
+            }
+
+            eventBeacon.flush();
+
+            waitForIt.emit(evolvContext, CONFIRMED, new JsonObject());
         });
     }
 
@@ -384,6 +380,15 @@ public class EvolvClientImpl implements EvolvClient {
         }
         eventBeacon.flush();
         waitForIt.emit(evolvContext, CONTAMINATED, new JsonObject());
+    }
+
+    private boolean hasEntryPointEids(JsonArray entryPoint, String eid) {
+        for (JsonElement entry : entryPoint) {
+            if (entry.getAsString().equals(eid)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean hasActiveEids(JsonArray activeEids, String eid) {

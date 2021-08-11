@@ -34,6 +34,8 @@ import ai.evolv.android_sdk.evolvinterface.EvolvContext;
 import ai.evolv.android_sdk.httpclients.HttpClient;
 import ai.evolv.android_sdk.httpclients.OkHttpClient;
 
+import static ai.evolv.android_sdk.EvolvClientImpl.INITIALIZED;
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -104,6 +106,15 @@ public class MainActivity extends AppCompatActivity {
                     TextView textView = findViewById(R.id.homeButton);
                     textView.setText(value.getAsString());
                 }));
+
+
+        client.subscribeActiveKeys("", new EvolvAction<JsonObject>() {
+            @Override
+            public void apply(JsonObject value) {
+                Log.d("evolv_subscribe_active_", "subscribeActiveKeys : " + value);
+            }
+        });
+
     }
 
     public void pressHome(View view) {

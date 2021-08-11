@@ -35,6 +35,7 @@ class EvolvEmitter {
     private EvolvConfig evolvConfig;
     private EvolvParticipant participant;
 
+
     public EvolvEmitter(EvolvConfig evolvConfig, EvolvContext evolvContext, String action, EvolvParticipant participant) {
 
         this.endpoint = evolvConfig.getEndpoint() + "/" + evolvConfig.getEnvironmentId() + "/" + action;
@@ -43,6 +44,9 @@ class EvolvEmitter {
         this.participant = participant;
         this.blockTransmit = evolvConfig.isBufferEvents();
 
+    }
+
+    public EvolvEmitter() {
     }
 
     // TODO: 16.07.2021 neet unit test
@@ -54,7 +58,7 @@ class EvolvEmitter {
             @Override
             public void run() {
                 try {
-                    Log.d("EvolvEmitter_events", "response: " + responseFuture.toString());
+                    //Log.d("EvolvEmitter_events", "response: " + responseFuture.toString());
                 } catch (Exception e) {
                     Log.d("EvolvEmitter_data", "There was a failure while retrieving the allocations.", e);
                 }
@@ -132,16 +136,17 @@ class EvolvEmitter {
     private RequestBody wrapMessagesData(JsonArray msgArray) {
         Gson gson = new Gson();
         String messages = gson.toJson(msgArray);
-        RequestBody formBody = RequestBody.create(JSON, "{\"uid\": " + participant.getUserId() +
+        String uid = gson.toJson(participant.getUserId());
+        RequestBody formBody = RequestBody.create(JSON, "{\"uid\": " + uid +
                 ",\"messages\":" + messages + " }");
 
-//        Log.d("EvolvEmitter_data", "1: " + "{\\\"uid\\\": \" + participant.getUserId() +\n" +
-//                "                \",\\\"messages\\\":\" + messages + \" }");
+//        Log.d("EvolvEmitter_data", "1: " + "{\"uid\": " + uid +
+//                ",\"messages\":" + messages + " }");
 
         return formBody;
     }
 
-    private RequestBody wrapMessagesEvents(JsonObject msgObject) {
+    RequestBody wrapMessagesEvents(JsonObject msgObject) {
         Gson gson = new Gson();
         JsonObject payload = msgObject.get("payload").getAsJsonObject();
         String uid = gson.toJson(payload.get("uid"));
@@ -164,14 +169,13 @@ class EvolvEmitter {
                 + contaminationReasonString
                 + ",\"timestamp\":" + timestamp + " }");
 
-        //remove payload -> move eid -> upper level -> delete uid from nested payload, delete cid from nested payload
-        Log.d("EvolvEmitter_events", "1: " + "{" + "\n"
-                + "\"uid\":" + uid + "\n"
-                + "\"cid\":" + cid + "\n"
-                + "\"eid\":" + eid + "\n"
-                + ",\"type\":" + type + "\n"
-                + contaminationReasonString + "\n"
-                + ",\"timestamp\":" + timestamp + " }");
+//        Log.d("EvolvEmitter_events", "1: " + "{" + "\n"
+//                + "\"uid\":" + uid + "\n"
+//                + "\"cid\":" + cid + "\n"
+//                + "\"eid\":" + eid + "\n"
+//                + ",\"type\":" + type + "\n"
+//                + contaminationReasonString + "\n"
+//                + ",\"timestamp\":" + timestamp + " }");
 
         return formBody;
     }
