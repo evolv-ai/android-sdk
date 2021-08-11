@@ -31,10 +31,13 @@ import ai.evolv.android_sdk.EvolvClientFactory;
 import ai.evolv.android_sdk.EvolvConfig;
 import ai.evolv.android_sdk.EvolvParticipant;
 import ai.evolv.android_sdk.evolvinterface.EvolvContext;
+import ai.evolv.android_sdk.evolvinterface.EvolvInvocation;
 import ai.evolv.android_sdk.httpclients.HttpClient;
 import ai.evolv.android_sdk.httpclients.OkHttpClient;
 
 import static ai.evolv.android_sdk.EvolvClientImpl.INITIALIZED;
+import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_CHANGED;
+import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_INITIALIZED;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -115,23 +118,15 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-//        client.on(INITIALIZED,EvolvAction){
-//            @Override
-//            public void apply(JsonObject value) {
-//                Log.d("evolv_subscribe_active_", "subscribeActiveKeys : " + value);
-//            }
-//        }
+        client.on(INITIALIZED, value -> Log.d("evolv_on_invoke", "INITIALIZED "));
+        client.on(CONTEXT_CHANGED, value -> Log.d("evolv_on_invoke", "CONTEXT_CHANGED "));
 
     }
 
     public void pressHome(View view) {
 // test area -->
 
-        JsonObject details = new JsonObject();
-        details.addProperty("reason","error-thrown");
-        details.addProperty("details","testing contamination");
-        client.contaminate(details,false);
-
+        
 
 // TODO: 28.07.2021 commented data   -->
         //////////////////remove (context)//////////////////

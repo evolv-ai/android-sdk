@@ -95,6 +95,14 @@ public interface EvolvClient {
     void reevaluateContext();
 
     /**
+     * Add listeners to lifecycle events that take place in to client.
+     *
+     * @param topic     The event topic on which the listener should be invoked.
+     * @param listener  The listener to be invoked for the specified topic.
+     */
+    void on(String topic, EvolvInvocation listener);
+
+    /**
      * Preload all keys under under the specified prefixes.
      *
      * @param prefixes   A list of prefixes to keys to load.

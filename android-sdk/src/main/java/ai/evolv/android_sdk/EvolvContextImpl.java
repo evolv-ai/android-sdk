@@ -20,7 +20,7 @@ import ai.evolv.android_sdk.helper.UtilityHelper;
 
 import static ai.evolv.android_sdk.EvolvStoreImpl.EMPTY_STRING;
 
-class EvolvContextImpl implements EvolvContext {
+public class EvolvContextImpl implements EvolvContext {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EvolvContextImpl.class);
     private static final int DEFAULT_QUEUE_LIMIT = 50;

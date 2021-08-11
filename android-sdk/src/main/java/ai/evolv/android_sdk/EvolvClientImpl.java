@@ -465,6 +465,11 @@ public class EvolvClientImpl implements EvolvClient {
     }
 
     @Override
+    public void on(String topic, EvolvInvocation listener) {
+        waitForIt.waitFor(evolvContext,topic,listener);
+    }
+
+    @Override
     public boolean isActive(String key) {
         return evolvStore.getValueActive(key);
     }
