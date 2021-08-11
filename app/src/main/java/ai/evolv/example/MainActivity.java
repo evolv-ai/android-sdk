@@ -115,11 +115,23 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+//        client.on(INITIALIZED,EvolvAction){
+//            @Override
+//            public void apply(JsonObject value) {
+//                Log.d("evolv_subscribe_active_", "subscribeActiveKeys : " + value);
+//            }
+//        }
+
     }
 
     public void pressHome(View view) {
 // test area -->
-client.confirm();
+
+        JsonObject details = new JsonObject();
+        details.addProperty("reason","error-thrown");
+        details.addProperty("details","testing contamination");
+        client.contaminate(details,false);
+
 
 // TODO: 28.07.2021 commented data   -->
         //////////////////remove (context)//////////////////

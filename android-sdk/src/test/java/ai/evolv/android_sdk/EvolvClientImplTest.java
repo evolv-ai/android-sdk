@@ -81,7 +81,6 @@ public class EvolvClientImplTest {
     private EvolvContextImpl evolvContext;
 
 
-
     JsonObject parseRawJsonObject(String raw) {
         JsonParser parser = new JsonParser();
         return parser.parse(raw).getAsJsonObject();
@@ -139,36 +138,28 @@ public class EvolvClientImplTest {
         HttpClient httpClient = spy(OkHttpClient.class);
 
         EvolvParticipant evolvParticipant = new EvolvParticipant(userID);
-        EvolvConfig config = EvolvConfig.builder("dbcf75051d", httpClient).build();
+        EvolvConfig config = EvolvConfig.builder(environmentId, httpClient).build();
 
         EvolvClient client = EvolvClientFactory.init(config, evolvParticipant);
+        EvolvContext evolvContext = ((EvolvClientImpl) client).getEvolvContext();
 
-        EvolvContext evolvContext = ((EvolvClientImpl)client).getEvolvContext();
-
+        //remote context
         evolvContext.set("Age", "26", false);
         evolvContext.set("Sex", "female", false);
         evolvContext.set("view", "home", false);
 
-RequestBody requestBody = RequestBody.create(JSON,"{ " +
+        RequestBody requestBody = RequestBody.create(JSON, "{ " +
                 "    \"uid\":\"79211876_16178796481581112\"\n" +
-                "    \"cid\":\"d73fd69be035:81990a9453\"\n" +
-                "    \"eid\":\"81990a9453\"\n" +
+                "    ,\"cid\":\"d73fd69be035:81990a9453\"\n" +
+                "    ,\"eid\":\"81990a9453\"\n" +
                 "    ,\"type\":\"confirmation\"\n" +
                 "    ,\"timestamp\":1628515420511 }");
 
-//        RequestBody requestBody2 = RequestBody.create(JSON,"{ " +
-//                "    \"uid\":\"79211876_16178796481581112\"\n" +
-//                "    \"cid\":\"d73fd69be035:81990a9453\"\n" +
-//                "    \"eid\":\"81990a9453\"\n" +
-//                "    ,\"type\":\"confirmation\"\n" +
-//                "    ,\"timestamp\":1628515420511 }");
-
 
         client.confirm();
-        verify(httpClient, times(1)).post(eq("https://participants.evolv.ai/v1/dbcf75051d/events"),same(requestBody));
 
-
-
+        //notice: there is a delay of 2000 milliseconds to perform the main calculation functionality (the reason is multithreading)
+        verify(httpClient, after(2000)).post(eq("https://participants.evolv.ai/v1/dbcf75051d/events"), any());
     }
 
     private EvolvContextImpl setUpMockedEvolvContext(EvolvContextImpl evolvContext) {
@@ -180,21 +171,34 @@ RequestBody requestBody = RequestBody.create(JSON,"{ " +
     @Test
     public void testContaminate() {
 
-        HttpClient httpClient = new OkHttpClient(TimeUnit.MILLISECONDS, 7000);
-        EvolvConfig config = EvolvConfig.builder("dbcf75051d", httpClient).build();
-        EvolvClient client = EvolvClientFactory.init(config, new EvolvParticipant(userID));
+        HttpClient httpClient = spy(OkHttpClient.class);
 
+        EvolvParticipant evolvParticipant = new EvolvParticipant(userID);
+        EvolvConfig config = EvolvConfig.builder(environmentId, httpClient).build();
+
+        EvolvClient client = EvolvClientFactory.init(config, evolvParticipant);
         EvolvContext evolvContext = ((EvolvClientImpl) client).getEvolvContext();
 
+        //remote context
         evolvContext.set("Age", "26", false);
         evolvContext.set("Sex", "female", false);
         evolvContext.set("view", "home", false);
 
+        RequestBody requestBody = RequestBody.create(JSON, "{ " +
+                "    \"uid\":\"79211876_16178796481581112\"\n" +
+                "    ,\"cid\":\"d73fd69be035:81990a9453\"\n" +
+                "    ,\"eid\":\"81990a9453\"\n" +
+                "    ,\"type\":\"contamination\"\n" +
+                "    ,\"contaminationReason\": {\"reason\":\"error-thrown\",\"details\":\"testing contamination\"} \n" +
+                "    ,\"timestamp\":1628515420511 }");
+
         JsonObject details = new JsonObject();
-        details.addProperty("reason","error-thrown");
-        details.addProperty("details","testing contamination");
+        details.addProperty("reason", "error-thrown");
+        details.addProperty("details", "testing contamination");
 
-        client.contaminate(details,false);
+        client.contaminate(details, false);
+
+        //notice: there is a delay of 2000 milliseconds to perform the main calculation functionality (the reason is multithreading)
+        verify(httpClient, after(2000)).post(eq("https://participants.evolv.ai/v1/dbcf75051d/events"), any());
     }
-
 }

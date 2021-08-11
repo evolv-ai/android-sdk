@@ -373,7 +373,6 @@ public class EvolvClientImpl implements EvolvClient {
             payload.addProperty("eid", alloc.getAsJsonObject().get("eid").getAsString());
             payload.addProperty("cid", alloc.getAsJsonObject().get("cid").getAsString());
             payload.add("contaminationReason", details);
-            payload.add("context", ((EvolvContextImpl) evolvContext).getRemoteContext());
 
             eventBeacon.emit("contamination", payload, false);
 
