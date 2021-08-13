@@ -426,8 +426,7 @@ class EvolvStoreImpl {
 
         return effectiveObject;
     }
-
-    // TODO: 30.06.2021 need a unit test
+    
     void setActiveAndEntryKeyStates(int version,
                                             EvolvContext evolvContext,
                                             JsonObject config,
