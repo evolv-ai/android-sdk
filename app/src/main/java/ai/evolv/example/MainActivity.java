@@ -69,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
 
         evolvContext = ((EvolvClientImpl) client).getEvolvContext();
         //case 1
-        //evolvContext.set("signedin", "yes", false);
+        evolvContext.set("signedin", "yes", false);
         //case 2
         evolvContext.set("authenticated","false",false);
         evolvContext.set("device","mobile",false);
@@ -118,17 +118,19 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        client.on(INITIALIZED, value -> Log.d("evolv_on_invoke", "INITIALIZED "));
-        client.on(CONTEXT_CHANGED, value -> Log.d("evolv_on_invoke", "CONTEXT_CHANGED "));
+        client.on(CONTEXT_CHANGED, value -> Log.d("evolv_on_invoke", "CONTEXT_CHANGED " + value));
 
     }
 
     public void pressHome(View view) {
 // test area -->
 
-        
+evolvContext.set("signedin","yes",false);
 
 // TODO: 28.07.2021 commented data   -->
+
+        //////////////////on (client)//////////////////
+        //client.on(CONTEXT_CHANGED, value -> Log.d("evolv_on_invoke", "CONTEXT_CHANGED "));
         //////////////////remove (context)//////////////////
         //evolvContext.remove("Age");
         //evolvContext.remove("Sex");

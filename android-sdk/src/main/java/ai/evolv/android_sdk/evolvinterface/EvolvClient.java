@@ -97,6 +97,28 @@ public interface EvolvClient {
     /**
      * Add listeners to lifecycle events that take place in to client.
      *
+     * Currently supported events:
+     *
+     *     "initialized" - Called when the client is fully initialized and ready for use with (topic, options)
+     *     "context.initialized" - Called when the context is fully initialized and ready for use with (topic, updated_context)
+     *     "context.changed" - Called whenever a change is made to the context values with (topic, updated_context)
+     *     "context.value.removed" - Called when a value is removed from context with (topic, key, updated_context)
+     *     "context.value.added" - Called when a new value is added to the context with (topic, key, value, local, updated_context)
+     *     "context.value.changed" - Called when a value is changed in the context (topic, key, value, before, local, updated_context)
+     *     "context.destroyed" - Called when the context is destroyed with (topic, context)
+     *     "genome.request.sent" - Called when a request for a genome is sent with (topic, requested_keys)
+     *     "config.request.sent" - Called when a request for a config is sent with (topic, requested_keys)
+     *     "genome.request.received" - Called when the result of a request for a genome is received (topic, requested_keys)
+     *     "config.request.received" - Called when the result of a request for a config is received (topic, requested_keys)
+     *     "request.failed" - Called when a request fails (topic, source, requested_keys, error)
+     *     "genome.updated" - Called when the stored genome is updated (topic, allocation_response)
+     *     "config.updated" - Called when the stored config is updated (topic, config_response)
+     *     "effective.genome.updated" - Called when the effective genome is updated (topic, effectiveGenome)
+     *     "store.destroyed" - Called when the store is destroyed (topic, store)
+     *     "confirmed" - Called when the consumer is confirmed (topic)
+     *     "contaminated" - Called when the consumer is contaminated (topic)
+     *     "event.emitted" - Called when an event is emitted through the beacon (topic, type, score)
+     *
      * @param topic     The event topic on which the listener should be invoked.
      * @param listener  The listener to be invoked for the specified topic.
      */

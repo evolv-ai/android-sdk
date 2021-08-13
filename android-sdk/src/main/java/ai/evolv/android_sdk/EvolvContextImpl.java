@@ -55,6 +55,10 @@ public class EvolvContextImpl implements EvolvContext {
         this.remoteContext = remoteContext;
     }
 
+    public void setInitialized(boolean initialized) {
+        this.initialized = initialized;
+    }
+
     @Override
     public void initialize(String uid,
                            JsonObject remoteContext,
@@ -119,11 +123,12 @@ public class EvolvContextImpl implements EvolvContext {
         JsonElement context = local ? localContext : remoteContext;
         JsonElement before = helper.getValueForKey(key, context);
 
-        // TODO: 04.06.2021 checking value type (because "before" and "value" need to compare correctly)
         if (before != null) {
-            if (before == value || before.toString().equals(value)) {
-                return false;
-            }
+            if(before.isJsonPrimitive()){
+                if (before.getAsString().equals(value) || before.toString().equals(value)) {
+                    return false;
+                }
+            }else return false;
         }
 
         helper.setKeyToValue(key, jsonValue, context);

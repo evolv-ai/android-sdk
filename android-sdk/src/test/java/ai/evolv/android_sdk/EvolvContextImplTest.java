@@ -15,7 +15,7 @@ import org.mockito.MockitoAnnotations;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class EvolvStoreImplTest {
+public class EvolvContextImplTest {
     //private static final String rawConfiguration = "{\"_published\":1625448126.7474048,\"_client\":{\"browser\":\"unspecified\",\"device\":\"desktop\",\"location\":\"UA\",\"platform\":\"unspecified\"},\"_experiments\":[{\"web\":{},\"_predicate\":{\"id\":174,\"combinator\":\"and\",\"rules\":[{\"field\":\"Age\",\"operator\":\"equal\",\"value\":\"26\"},{\"combinator\":\"or\",\"rules\":[{\"field\":\"Sex\",\"operator\":\"equal\",\"value\":\"female\"},{\"field\":\"Student\",\"operator\":\"contains\",\"value\":\"High_school\"}]}]},\"home\":{\"_is_entry_point\":true,\"_predicate\":{\"combinator\":\"and\",\"rules\":[{\"field\":\"view\",\"operator\":\"equal\",\"value\":\"home\"}]},\"cta_text\":{\"_is_entry_point\":false,\"_predicate\":null,\"_values\":true,\"_initializers\":true},\"_initializers\":true},\"next\":{\"_is_entry_point\":false,\"_predicate\":{\"combinator\":\"and\",\"rules\":[{\"field\":\"view\",\"operator\":\"equal\",\"value\":\"next\"}]},\"layout\":{\"_is_entry_point\":false,\"_predicate\":null,\"_values\":true,\"_initializers\":true},\"_initializers\":true},\"id\":\"47d857cd5e\",\"_paused\":false},{\"web\":{},\"_predicate\":{\"id\":156,\"combinator\":\"and\",\"rules\":[{\"field\":\"signedin\",\"operator\":\"equal\",\"value\":\"yes\"}]},\"button_color\":{\"_is_entry_point\":false,\"_predicate\":null,\"_values\":true,\"_initializers\":true},\"cta_text\":{\"_is_entry_point\":false,\"_predicate\":null,\"_values\":true,\"_initializers\":true},\"id\":\"7789bf55d7\",\"_paused\":true},{\"web\":{},\"_predicate\":{\"id\":165,\"combinator\":\"and\",\"rules\":[{\"field\":\"authenticated\",\"operator\":\"equal\",\"value\":\"false\"},{\"field\":\"text\",\"operator\":\"contains\",\"value\":\"cancel\"}]},\"button_color\":{\"_is_entry_point\":false,\"_predicate\":{\"combinator\":\"or\",\"rules\":[{\"field\":\"device\",\"operator\":\"equal\",\"value\":\"mobile\"},{\"field\":\"device\",\"operator\":\"equal\",\"value\":\"desktop\"},{\"field\":\"platform\",\"operator\":\"equal\",\"value\":\"windows\"}]},\"_values\":true,\"_initializers\":true},\"cta_text\":{\"_is_entry_point\":false,\"_predicate\":null,\"_values\":true,\"_initializers\":true},\"id\":\"00436dee0b\",\"_paused\":true}]}";
     private static final String rawExperiment_one = "{\"web\":{},\"_predicate\":{},\"home\":{\"_is_entry_point\":true,\"_predicate\":{\"combinator\":\"and\",\"rules\":[{\"field\":\"view\",\"operator\":\"equal\",\"value\":\"home\"}]},\"cta_text\":{\"_is_entry_point\":false,\"_predicate\":null,\"_values\":true,\"_initializers\":true},\"_initializers\":true},\"next\":{\"_is_entry_point\":false,\"_predicate\":{\"combinator\":\"and\",\"rules\":[{\"field\":\"view\",\"operator\":\"equal\",\"value\":\"next\"}]},\"layout\":{\"_is_entry_point\":false,\"_predicate\":null,\"_values\":true,\"_initializers\":true},\"_initializers\":true},\"_paused\":false}";
     private static final String rawExperiment_two = "{\"5d0d177a37\":{\"loaded\":{\"loaded_keys\":[\"cta_text_165\",\"button_color_165\"]},\"active\":{\"active_cta_text_165\":\"cta_text_165\",\"active_button_color_165\":\"button_color_165\"}},\"81990a9453\":{\"loaded\":{\"loaded_keys\":[\"home\",\"home.cta_text\",\"next\",\"next.layout\"]}},\"9c83cf9cde\":{\"loaded\":{\"loaded_keys\":[\"button_color\",\"cta_text\"]}}}";
@@ -80,234 +80,25 @@ public class EvolvStoreImplTest {
     }
 
     @Test
-    public void testGetValueFromRecurse() {
+    public void setTest() {
 
-        ArrayList<String> keys = new ArrayList<>(Arrays.asList("home", "home.cta_text",
-                "next", "next.layout"));
-
-        try {
-            EvolvStoreImpl evolvStore = new EvolvStoreImpl(evolvConfig, participant, waitForIt);
-            JsonElement current = parseRawJsonElement(rawExperiment_one);
-            String parentKey = "";
-
-            evolvStore.recurse(current, parentKey);
-
-            evolvStore.endsWithFilter();
-
-            Assert.assertEquals(evolvStore.getExpLoadedList(), keys);
-        } catch (Error e) {
-            Assert.fail(e.getMessage());
-        }
-    }
-
-    @Test
-    public void testEvaluatePredicates() {
-
-        JsonArray result_template_one = parseRawJsonElementAsArray("[{\"47d857cd5e_disabled\":{\"rejected_\":\"\"},\"47d857cd5e_entry\":{}},{\"eb18e9a785_disabled\":{\"rejected_web.o7b7msnxd\":\"web.o7b7msnxd\"},\"eb18e9a785_entry\":{}},{\"00436dee0b_disabled\":{\"rejected_\":\"\"},\"00436dee0b_entry\":{}},{\"7789bf55d7_disabled\":{\"rejected_\":\"\"},\"7789bf55d7_entry\":{}}]");
-
-        JsonElement config = parseRawJsonElement(rawConfig_one);
-        JsonObject remoteContext = parseRawJsonObject(rawRemoteContext_one);
-
-        EvolvContextImpl evolvContext = new EvolvContextImpl(evolvStore, waitForIt);
-
-        evolvContext.setRemoteContext(remoteContext);
-
-        EvolvStoreImpl evolvStore = new EvolvStoreImpl(evolvConfig, participant, waitForIt);
-        JsonArray result_one = evolvStore.evaluatePredicates(1, evolvContext, config);
-
-        Assert.assertEquals(result_template_one, result_one);
-
-    }
-
-    @Test
-    public void testGetValue() {
-
-        JsonObject result_template = (parseRawJsonObject("{\"cta_text\":\"Click Here\"}"));
-
-        EvolvStoreImpl evolvStore = new EvolvStoreImpl(evolvConfig, participant, waitForIt);
-        JsonObject genome_one = parseRawJsonObject(rawGenome_one);
-        evolvStore.setGenomes(genome_one);
-
-        String key_one = "home.cta_text";
-        String value_one = evolvStore.getValue(key_one).getAsString();
-        Assert.assertEquals(value_one, "Click Here");
-
-        String key_two = "home";
-        JsonObject value_two = evolvStore.getValue(key_two).getAsJsonObject();
-        Assert.assertEquals(value_two, result_template);
-
-    }
-
-    @Test
-    public void testGetActiveKeys() {
-
-        JsonObject active_keys_template = (parseRawJsonObject("{\"active_button_color\":\"button_color\",\"active_cta_text\":\"cta_text\",\"active_home\":\"home\",\"active_home.cta_text\":\"home.cta_text\"}"));
-
-        EvolvStoreImpl evolvStore = new EvolvStoreImpl(evolvConfig, participant, waitForIt);
-        evolvStore.setActiveKeys(active_keys_template);
-
-        JsonObject activeKeys_result = evolvStore.getActiveKeys();
-        Assert.assertEquals(activeKeys_result, active_keys_template);
-
-    }
-
-    @Test
-    public void testClearActiveKeys() {
-
-        JsonObject active_keys_template = (parseRawJsonObject("{\"active_button_color\":\"button_color\",\"active_cta_text\":\"cta_text\",\"active_home\":\"home\",\"active_home.cta_text\":\"home.cta_text\"}"));
-        EvolvStoreImpl evolvStore = new EvolvStoreImpl(evolvConfig, participant, waitForIt);
-        evolvStore.setActiveKeys(active_keys_template);
-        evolvStore.clearActiveKeys();
-        Assert.assertEquals(evolvStore.getActiveKeys().size(), 0);
-
-    }
-
-    @Test
-    public void testClearActiveKeysPrefix() {
-
-        JsonObject active_keys_template_reuslt = (parseRawJsonObject("{\"active_button_color\":\"button_color\",\"active_cta_text\":\"cta_text\"}"));
-        JsonObject active_keys = (parseRawJsonObject("{\"active_button_color\":\"button_color\",\"active_cta_text\":\"cta_text\",\"active_home\":\"home\",\"active_home.cta_text\":\"home.cta_text\"}"));
-        EvolvStoreImpl evolvStore = new EvolvStoreImpl(evolvConfig, participant, waitForIt);
-        evolvStore.setActiveKeys(active_keys);
-        evolvStore.clearActiveKeys("home");
-        Assert.assertEquals(active_keys_template_reuslt, evolvStore.getActiveKeys());
-
-    }
-
-    @Test
-    public void setActiveAndEntryKeyStatesCaseOne() {
-//        case 1 remote context
-//        evolvContext.set("authenticated","false",false);
-//        evolvContext.set("device","mobile",false);
-
-        JsonObject config = parseRawJsonObject(rawConfig_two);
-        JsonObject remoteContext = parseRawJsonObject(rawRemoteContext_three);
-        JsonArray allocations = parseRawJsonElementAsArray(rawAllocations_one);
-
-        JsonObject exp_one = new JsonObject();
-        exp_one.add("loaded", parseRawJsonObject("{\"loaded_keys\":[\"cta_text_165\",\"button_color_165\"]}"));
-        exp_one.add("active", parseRawJsonObject("{\"active_cta_text_165\":\"cta_text_165\",\"active_button_color_165\":\"button_color_165\"}"));
-        exp_one.add("entry", parseRawJsonObject("{\"entry_button_color_165\":\"button_color_165\"}"));
-        JsonObject exp_two = new JsonObject();
-        exp_two.add("loaded", parseRawJsonObject("{\"loaded_keys\":[\"home\",\"home.cta_text\",\"next\",\"next.layout\"]}"));
-        exp_two.add("active", parseRawJsonObject("{}"));
-        exp_two.add("entry", parseRawJsonObject("{}"));
-        JsonObject exp_three = new JsonObject();
-        exp_three.add("loaded", parseRawJsonObject("{\"loaded_keys\":[\"button_color\",\"cta_text\"]}"));
-        exp_three.add("active", parseRawJsonObject("{}"));
-        exp_three.add("entry", parseRawJsonObject("{}"));
-
-        JsonObject expectedResult = new JsonObject();
-
-        expectedResult.add("5d0d177a37", exp_one);
-        expectedResult.add("81990a9453", exp_two);
-        expectedResult.add("9c83cf9cde", exp_three);
-
-        EvolvContextImpl evolvContext = new EvolvContextImpl(evolvStore, waitForIt);
-
-        evolvContext.setRemoteContext(remoteContext);
-        EvolvStoreImpl evolvStore = new EvolvStoreImpl(evolvConfig, participant, waitForIt);
-
-        EvolvStoreImpl.KeyStates configKeyStates = new EvolvStoreImpl.KeyStates();
-        configKeyStates.experiments = parseRawJsonObject(rawExperiment_two);
-
-        evolvStore.setActiveAndEntryKeyStates(version, evolvContext, config, allocations, configKeyStates);
-
-        Assert.assertEquals(configKeyStates.experiments, expectedResult);
-    }
-
-    @Test
-    public void setActiveAndEntryKeyStatesCaseTwo() {
-//        case 2 remote context
-//        evolvContext.set("authenticated","false",false);
-//        evolvContext.set("device","mobile",false);
-
-//        evolvContext.set("Age", "26", false);
-//        evolvContext.set("Sex", "female", false);
-//        evolvContext.set("view", "home", false);
-
-        JsonObject config = parseRawJsonObject(rawConfig_two);
-        JsonObject remoteContext = parseRawJsonObject(rawRemoteContext_two);
-        JsonArray allocations = parseRawJsonElementAsArray(rawAllocations_one);
-
-        JsonObject exp_one = new JsonObject();
-        exp_one.add("loaded", parseRawJsonObject("{\"loaded_keys\":[\"cta_text_165\",\"button_color_165\"]}"));
-        exp_one.add("active", parseRawJsonObject("{\"active_cta_text_165\":\"cta_text_165\",\"active_button_color_165\":\"button_color_165\"}"));
-        exp_one.add("entry", parseRawJsonObject("{\"entry_button_color_165\":\"button_color_165\"}"));
-        JsonObject exp_two = new JsonObject();
-        exp_two.add("loaded", parseRawJsonObject("{\"loaded_keys\":[\"home\",\"home.cta_text\",\"next\",\"next.layout\"]}"));
-        exp_two.add("active", parseRawJsonObject("{\"active_home\":\"home\",\"active_home.cta_text\":\"home.cta_text\"}"));
-        exp_two.add("entry", parseRawJsonObject("{\"entry_home\":\"home\",\"entry_home.cta_text\":\"home.cta_text\"}"));
-        JsonObject exp_three = new JsonObject();
-        exp_three.add("loaded", parseRawJsonObject("{\"loaded_keys\":[\"button_color\",\"cta_text\"]}"));
-        exp_three.add("active", parseRawJsonObject("{}"));
-        exp_three.add("entry", parseRawJsonObject("{}"));
-
-        JsonObject expectedResult = new JsonObject();
-
-        expectedResult.add("5d0d177a37", exp_one);
-        expectedResult.add("81990a9453", exp_two);
-        expectedResult.add("9c83cf9cde", exp_three);
-
-        EvolvContextImpl evolvContext = new EvolvContextImpl(evolvStore, waitForIt);
-
-        evolvContext.setRemoteContext(remoteContext);
-        EvolvStoreImpl evolvStore = new EvolvStoreImpl(evolvConfig, participant, waitForIt);
-
-        EvolvStoreImpl.KeyStates configKeyStates = new EvolvStoreImpl.KeyStates();
-        configKeyStates.experiments = parseRawJsonObject(rawExperiment_two);
-
-        evolvStore.setActiveAndEntryKeyStates(version, evolvContext, config, allocations, configKeyStates);
-
-        Assert.assertEquals(configKeyStates.experiments, expectedResult);
-    }
-
-    @Test
-    public void setActiveAndEntryKeyStatesCaseThree() {
-//        case 3 remote context
-//        evolvContext.set("signedin", "yes", false);
-//
-//        evolvContext.set("authenticated","false",false);
-//        evolvContext.set("device","mobile",false);
-//
-//        evolvContext.set("Age", "26", false);
-//        evolvContext.set("Sex", "female", false);
-//        evolvContext.set("view", "home", false);
-
-        JsonObject config = parseRawJsonObject(rawConfig_two);
-        JsonObject remoteContext = parseRawJsonObject(rawRemoteContext_four);
-        JsonArray allocations = parseRawJsonElementAsArray(rawAllocations_one);
-
-        JsonObject exp_one = new JsonObject();
-        exp_one.add("loaded", parseRawJsonObject("{\"loaded_keys\":[\"cta_text_165\",\"button_color_165\"]}"));
-        exp_one.add("active", parseRawJsonObject("{\"active_cta_text_165\":\"cta_text_165\",\"active_button_color_165\":\"button_color_165\"}"));
-        exp_one.add("entry", parseRawJsonObject("{\"entry_button_color_165\":\"button_color_165\"}"));
-        JsonObject exp_two = new JsonObject();
-        exp_two.add("loaded", parseRawJsonObject("{\"loaded_keys\":[\"home\",\"home.cta_text\",\"next\",\"next.layout\"]}"));
-        exp_two.add("active", parseRawJsonObject("{\"active_home\":\"home\",\"active_home.cta_text\":\"home.cta_text\"}"));
-        exp_two.add("entry", parseRawJsonObject("{\"entry_home\":\"home\",\"entry_home.cta_text\":\"home.cta_text\"}"));
-        JsonObject exp_three = new JsonObject();
-        exp_three.add("loaded", parseRawJsonObject("{\"loaded_keys\":[\"button_color\",\"cta_text\"]}"));
-        exp_three.add("active", parseRawJsonObject("{\"active_button_color\":\"button_color\",\"active_cta_text\":\"cta_text\"}"));
-        exp_three.add("entry", parseRawJsonObject("{\"entry_cta_text\":\"cta_text\"}"));
-
-        JsonObject expectedResult = new JsonObject();
-
-        expectedResult.add("5d0d177a37", exp_one);
-        expectedResult.add("81990a9453", exp_two);
-        expectedResult.add("9c83cf9cde", exp_three);
-
-        EvolvContextImpl evolvContext = new EvolvContextImpl(evolvStore, waitForIt);
-
-        evolvContext.setRemoteContext(remoteContext);
-        EvolvStoreImpl evolvStore = new EvolvStoreImpl(evolvConfig, participant, waitForIt);
-
-        EvolvStoreImpl.KeyStates configKeyStates = new EvolvStoreImpl.KeyStates();
-        configKeyStates.experiments = parseRawJsonObject(rawExperiment_two);
-
-        evolvStore.setActiveAndEntryKeyStates(version, evolvContext, config, allocations, configKeyStates);
-
-        Assert.assertEquals(configKeyStates.experiments, expectedResult);
+        EvolvContextImpl evolvContext = new EvolvContextImpl(evolvStore,waitForIt);
+        evolvContext.setInitialized(true);
+        //case 1
+        boolean result_one = evolvContext.set("signedin", "yes", false);
+        Assert.assertTrue(result_one);
+        //case 2
+        boolean result_two = evolvContext.set("signedin", "no", false);
+        Assert.assertTrue(result_two);
+        //case 3
+        boolean result_three = evolvContext.set("testkey.test", "value", false);
+        Assert.assertTrue(result_three);
+        //case 4
+        boolean result_four = evolvContext.set("myKey", "testValue", false);
+        Assert.assertTrue(result_four);
+        //case 5
+        boolean result_five = evolvContext.set("myKey", "testValue", false);
+        Assert.assertFalse(result_five);
     }
 
 }

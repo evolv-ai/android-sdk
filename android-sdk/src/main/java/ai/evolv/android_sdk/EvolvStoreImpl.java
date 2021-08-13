@@ -95,7 +95,7 @@ class EvolvStoreImpl {
         reevaluateContext();
     };
 
-    private class KeyStates {
+    static class KeyStates {
 
         Set<String> needed = new HashSet<String>();
         Set requested = new HashSet();
@@ -428,7 +428,7 @@ class EvolvStoreImpl {
     }
 
     // TODO: 30.06.2021 need a unit test
-    private void setActiveAndEntryKeyStates(int version,
+    void setActiveAndEntryKeyStates(int version,
                                             EvolvContext evolvContext,
                                             JsonObject config,
                                             JsonArray allocations,
