@@ -21,10 +21,14 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
+import org.mockito.internal.verification.api.VerificationData;
+import org.mockito.verification.VerificationMode;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
+import java.nio.CharBuffer;
 import java.util.concurrent.TimeUnit;
 
 import ai.evolv.android_sdk.evolvinterface.EvolvAction;
@@ -32,16 +36,22 @@ import ai.evolv.android_sdk.evolvinterface.EvolvClient;
 import ai.evolv.android_sdk.evolvinterface.EvolvContext;
 import ai.evolv.android_sdk.httpclients.HttpClient;
 import ai.evolv.android_sdk.httpclients.OkHttpClient;
+import okhttp3.FormBody;
 import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
+import okio.Buffer;
 import okio.BufferedSink;
 
 import static ai.evolv.android_sdk.EvolvClientImpl.INITIALIZED;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.argThat;
+import static org.mockito.Matchers.booleanThat;
+import static org.mockito.Matchers.byteThat;
+import static org.mockito.Matchers.charThat;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.matches;
 import static org.mockito.Matchers.same;
 import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.atLeast;
@@ -148,22 +158,45 @@ public class EvolvClientImplTest {
         evolvContext.set("Sex", "female", false);
         evolvContext.set("view", "home", false);
 
-        RequestBody requestBody = RequestBody.create(JSON, "{ " +
-                "    \"uid\":\"79211876_16178796481581112\"\n" +
-                "    ,\"cid\":\"d73fd69be035:81990a9453\"\n" +
-                "    ,\"eid\":\"81990a9453\"\n" +
-                "    ,\"type\":\"confirmation\"\n" +
-                "    ,\"timestamp\":1628515420511 }");
+        JsonObject jsonObjectTemplate = new JsonObject();
+        jsonObjectTemplate.addProperty("uid","79211876_16178796481581112223332");
+        jsonObjectTemplate.addProperty("cid","a0e832fc1177:81990a9453");
+        jsonObjectTemplate.addProperty("eid","81990a9453");
+        jsonObjectTemplate.addProperty("type","confirmation");
 
-
-        client.confirm();
 
         //notice: there is a delay of 2000 milliseconds to perform the main calculation functionality (the reason is multithreading)
-        verify(httpClient, after(2000)).post(eq("https://participants.evolv.ai/v1/dbcf75051d/events"), any());
+        try { Thread.sleep(2000); } catch (InterruptedException e) { e.printStackTrace(); }
+        client.confirm();
+
+        verify(httpClient).post(eq("https://participants.evolv.ai/v1/dbcf75051d/events"), argThat(new ArgumentMatcher<RequestBody>() {
+            @Override
+            public boolean matches(Object argument) {
+                //getting body from RequestBody
+                String body = bodyToString((RequestBody) argument);
+
+                JsonObject jsonObject = parseRawJsonObject(body);
+                jsonObject.remove("timestamp");
+
+                return jsonObjectTemplate.equals(jsonObject);
+            }
+        }));
+
+    }
+
+    private static String bodyToString(final RequestBody request){
+        try {
+            final RequestBody copy = request;
+            final Buffer buffer = new Buffer();
+            copy.writeTo(buffer);
+            return buffer.readUtf8();
+        }
+        catch (final IOException e) {
+            return "did not work";
+        }
     }
 
     private EvolvContextImpl setUpMockedEvolvContext(EvolvContextImpl evolvContext) {
-
         when(evolvContext.getRemoteContext()).thenReturn(parseRawJsonObject(rawRemoteContext_one));
         return evolvContext;
     }
@@ -184,21 +217,37 @@ public class EvolvClientImplTest {
         evolvContext.set("Sex", "female", false);
         evolvContext.set("view", "home", false);
 
-        RequestBody requestBody = RequestBody.create(JSON, "{ " +
-                "    \"uid\":\"79211876_16178796481581112\"\n" +
-                "    ,\"cid\":\"d73fd69be035:81990a9453\"\n" +
-                "    ,\"eid\":\"81990a9453\"\n" +
-                "    ,\"type\":\"contamination\"\n" +
-                "    ,\"contaminationReason\": {\"reason\":\"error-thrown\",\"details\":\"testing contamination\"} \n" +
-                "    ,\"timestamp\":1628515420511 }");
+        JsonObject jsonObjectReason = new JsonObject();
+        jsonObjectReason.addProperty("reason","error-thrown");
+        jsonObjectReason.addProperty("details","testing contamination");
+
+        JsonObject jsonObjectTemplate = new JsonObject();
+        jsonObjectTemplate.addProperty("uid","79211876_16178796481581112223332");
+        jsonObjectTemplate.addProperty("cid","a0e832fc1177:81990a9453");
+        jsonObjectTemplate.addProperty("eid","81990a9453");
+        jsonObjectTemplate.addProperty("type","contamination");
+        jsonObjectTemplate.add("contaminationReason",jsonObjectReason);
 
         JsonObject details = new JsonObject();
         details.addProperty("reason", "error-thrown");
         details.addProperty("details", "testing contamination");
 
-        client.contaminate(details, false);
 
         //notice: there is a delay of 2000 milliseconds to perform the main calculation functionality (the reason is multithreading)
-        verify(httpClient, after(2000)).post(eq("https://participants.evolv.ai/v1/dbcf75051d/events"), any());
+        try { Thread.sleep(2000); } catch (InterruptedException e) { e.printStackTrace(); }
+        client.contaminate(details, false);
+
+        verify(httpClient).post(eq("https://participants.evolv.ai/v1/dbcf75051d/events"), argThat(new ArgumentMatcher<RequestBody>() {
+            @Override
+            public boolean matches(Object argument) {
+                //getting body from RequestBody
+                String body = bodyToString((RequestBody) argument);
+
+                JsonObject jsonObject = parseRawJsonObject(body);
+                jsonObject.remove("timestamp");
+
+                return jsonObjectTemplate.equals(jsonObject);
+            }
+        }));
     }
 }

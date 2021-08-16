@@ -39,7 +39,7 @@ public class EvolvConfig {
     public static Builder builder(String environmentId, HttpClient httpClient) {
         return new Builder(environmentId, httpClient);
     }
-
+    
     String getHttpScheme() {
         return httpScheme;
     }

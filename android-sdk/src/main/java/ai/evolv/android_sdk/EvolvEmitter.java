@@ -114,7 +114,6 @@ class EvolvEmitter {
                 }
 
                 RequestBody formBody = wrapMessagesEvents(editedMessage);
-                // TODO: 16.07.2021 uncomment (do not spam the server during testing)
                 send(endpoint, formBody, sync);
             }
         } else {

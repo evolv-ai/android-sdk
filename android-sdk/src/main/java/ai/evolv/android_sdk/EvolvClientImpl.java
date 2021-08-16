@@ -84,6 +84,7 @@ public class EvolvClientImpl implements EvolvClient {
     // TODO: 07.07.2021 need to test
     @Override
     public void initialize(String uid, JsonObject remoteContext, JsonObject localContext) {
+
         if (initialized) {
             try {
                 throw new EvolvKeyError("Evolv: Client is already initialized");
@@ -150,12 +151,13 @@ public class EvolvClientImpl implements EvolvClient {
             });
 
             if (evolvConfig.isAutoConfirm()) {
-                this.confirm();
+                confirm();
             }
 
             initialized = true;
             waitForIt.emit(evolvContext, INITIALIZED, evolvConfig);
         }
+
     }
 
     @Override

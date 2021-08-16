@@ -305,7 +305,7 @@ class EvolvStoreImpl {
             for (Map.Entry<String, JsonElement> activeKey : active.getAsJsonObject().entrySet()) {
                 activeKeys.addProperty(activeKey.getKey(), activeKey.getValue().getAsString());
 
-                if (effectiveGenome != null) {
+                if (effectiveGenome != null && effectiveGenome.size() != 0) {
                   JsonObject value = effectiveGenome.get( "activeGenome_"+ expKeyStates.getKey()).getAsJsonObject();
 
                     JsonElement pruned = helper.prune(value, active);
@@ -426,7 +426,7 @@ class EvolvStoreImpl {
 
         return effectiveObject;
     }
-    
+
     void setActiveAndEntryKeyStates(int version,
                                             EvolvContext evolvContext,
                                             JsonObject config,
