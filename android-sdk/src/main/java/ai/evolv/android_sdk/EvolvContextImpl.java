@@ -164,18 +164,14 @@ public class EvolvContextImpl implements EvolvContext {
         return true;
     }
 
-    // TODO: 27.07.2021 testing! (used in the store)
     @Override
     public JsonObject resolve() {
         ensureInitialized();
-// TODO: 26.07.2021 uncomment and need to test!
-//        for (Map.Entry<String, JsonElement> entry : localContext.entrySet()) {
-//            remoteContext.add(entry.getKey(),entry.getValue());
-//        }
-//
-//        return remoteContext;
 
-        return new JsonObject();
+        for (Map.Entry<String, JsonElement> entry : localContext.entrySet()) {
+            remoteContext.add(entry.getKey(),entry.getValue());
+        }
+        return remoteContext;
     }
 
     private void ensureInitialized() {

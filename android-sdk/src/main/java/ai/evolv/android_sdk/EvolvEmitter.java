@@ -17,6 +17,7 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.Future;
 
 import ai.evolv.android_sdk.evolvinterface.EvolvContext;
 import okhttp3.MediaType;
@@ -34,6 +35,7 @@ class EvolvEmitter {
     private int timer;
     private EvolvConfig evolvConfig;
     private EvolvParticipant participant;
+    private JsonArray dataCollectionMsgs = new JsonArray();
 
 
     public EvolvEmitter(EvolvConfig evolvConfig, EvolvContext evolvContext, String action, EvolvParticipant participant) {
@@ -58,7 +60,7 @@ class EvolvEmitter {
             @Override
             public void run() {
                 try {
-                    //Log.d("EvolvEmitter_events", "response: " + responseFuture.toString());
+                    Log.d("EvolvEmitter_events", "response: " + responseFuture.toString());
                 } catch (Exception e) {
                     Log.d("EvolvEmitter_data", "There was a failure while retrieving the allocations.", e);
                 }
@@ -124,9 +126,33 @@ class EvolvEmitter {
                     break;
                 }
 
+//                dataCollectionMsgs.add(smallBatch);
+//
+//                boolean allDone = true;
+//
+//                if(EvolvStoreImpl.futureList == null){
+//                    Log.d("count_cust", "1" );
+//
+//                    break;
+//                }
+//
+//                for (Future<?> future : EvolvStoreImpl.futureList) {
+//                    if(!future.isDone()){
+//                        allDone = false;
+//                    }
+//                }
+//
+//                if(allDone){
+//                    RequestBody formBody = wrapMessagesData(smallBatch);
+//                    Log.d("count_cust", "3" );
+//
+//                    send(endpoint, formBody, sync);
+//                }
+
                 RequestBody formBody = wrapMessagesData(smallBatch);
-                // TODO: 16.07.2021 uncomment (do not spam the server during testing)
-                //send(endpoint, formBody, sync);
+
+                send(endpoint, formBody, sync);
+
                 break;
             }
         }
@@ -139,8 +165,8 @@ class EvolvEmitter {
         RequestBody formBody = RequestBody.create(JSON, "{\"uid\": " + uid +
                 ",\"messages\":" + messages + " }");
 
-//        Log.d("EvolvEmitter_data", "1: " + "{\"uid\": " + uid +
-//                ",\"messages\":" + messages + " }");
+        Log.d("EvolvEmitter_data_1", "1: " + "{\"uid\": " + uid +
+                ",\"messages\":" + messages + " }");
 
         return formBody;
     }
@@ -156,14 +182,14 @@ class EvolvEmitter {
         String timestamp = gson.toJson(msgObject.get("timestamp"));
 
         String contaminationReasonString = "";
-        if(payload.get("contaminationReason") != null){
+        if (payload.get("contaminationReason") != null) {
             contaminationReasonString = ",\"contaminationReason\":" + contaminationReason;
         }
 
         RequestBody formBody = RequestBody.create(JSON, "{"
                 + "\"uid\":" + uid
-                +",\"cid\":" + cid
-                +",\"eid\":" + eid
+                + ",\"cid\":" + cid
+                + ",\"eid\":" + eid
                 + ",\"type\":" + type
                 + contaminationReasonString
                 + ",\"timestamp\":" + timestamp + " }");

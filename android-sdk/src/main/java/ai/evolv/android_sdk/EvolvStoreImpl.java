@@ -25,8 +25,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import ai.evolv.android_sdk.evolvinterface.EvolvCallBack;
 import ai.evolv.android_sdk.evolvinterface.EvolvContext;
@@ -84,6 +85,9 @@ class EvolvStoreImpl {
     private CountDownLatch latch = new CountDownLatch(1);
     //private Map<String,EvolvCallBack> subscriptions = new LinkedHashMap();
     private Map<EvolvCallBack, Pair<String, EvolvType>> subscriptions = new LinkedHashMap<>();
+    private ExecutorService executor;
+    private Future<?> future = null;
+    static List<Future<?>> futureList = null;
 
 
     @FunctionalInterface
@@ -798,14 +802,21 @@ class EvolvStoreImpl {
         performAction(type, value, callBack);
     }
 
-    private Executor getCachedThreadPool() {
+    private ExecutorService getCachedThreadPool() {
+        Log.d("myLog_executor_1", "1performAction: ");
+
         return Executors.newCachedThreadPool();
     }
 
     private void performAction(EvolvType type, String value, EvolvCallBack callBack) {
-        getCachedThreadPool().execute(new Runnable() {
+
+        executor = executor == null ?  getCachedThreadPool() : executor;
+
+        futureList = new ArrayList<Future<?>>();
+        future = executor.submit(new Runnable() {
             @Override
             public void run() {
+                Log.d("myLog_executor", "2performAction:  " + executor +"  " + Thread.currentThread().getName());
 
                 switch (type) {
                     case getActiveKeys: {
@@ -849,6 +860,58 @@ class EvolvStoreImpl {
                 }
             }
         });
+
+        futureList.add(future);
+
+
+
+//        executor.execute(new Runnable() {
+//            @Override
+//            public void run() {
+//                Log.d("myLog_executor", "2performAction:  " + executor +"  " + Thread.currentThread().getName());
+//
+//                switch (type) {
+//                    case getActiveKeys: {
+//                        if (value.isEmpty()) {
+//                            JsonObject activeKeys = getActiveKeys();
+//                            callBack.invoke(activeKeys);
+//                        } else {
+//                            JsonObject activeKeysPrefix = getActiveKeys(value);
+//                            callBack.invoke(activeKeysPrefix);
+//                        }
+//                        break;
+//                    }
+//                    case get: {
+//                        JsonElement element = getValue(value);
+//                        JsonElement result = JsonNull.INSTANCE;
+//
+//                        if (element == null) {
+//                            result = JsonNull.INSTANCE;
+//                            callBack.invoke(result);
+//                            break;
+//                        }
+//                        if (element.isJsonPrimitive()) {
+//                            result = element.getAsJsonPrimitive();
+//                        } else if (element.isJsonObject()) {
+//                            result = element.getAsJsonObject();
+//                        }
+//                        callBack.invoke(result);
+//                        break;
+//                    }
+//                    case isActive: {
+//                        boolean isActive = getValueActive(value);
+//                        callBack.invoke(isActive);
+//                        break;
+//                    }
+//                    case activeEntryPoints: {
+//                        JsonElement activeEntryPoints = activeEntryPoints();
+//                        callBack.invoke(activeEntryPoints);
+//                        break;
+//                    }
+//                    default:
+//                }
+//            }
+//        });
     }
 
     JsonObject getActiveKeys(String prefix) {

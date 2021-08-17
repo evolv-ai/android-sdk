@@ -175,13 +175,13 @@ public class EvolvClientImplTest {
                 //getting body from RequestBody
                 String body = bodyToString((RequestBody) argument);
 
-                JsonObject jsonObject = parseRawJsonObject(body);
-                jsonObject.remove("timestamp");
+                JsonObject jsonObjectResult = parseRawJsonObject(body);
+                //need to remove the "timestamp" because the objects are compared by fields
+                jsonObjectResult.remove("timestamp");
 
-                return jsonObjectTemplate.equals(jsonObject);
+                return jsonObjectTemplate.equals(jsonObjectResult);
             }
         }));
-
     }
 
     private static String bodyToString(final RequestBody request){

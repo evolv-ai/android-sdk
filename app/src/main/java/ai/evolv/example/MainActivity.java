@@ -118,11 +118,21 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        client.on(CONTEXT_CHANGED, new EvolvInvocation() {
+            @Override
+            public void invoke(Object value) {
+                Log.d("evolv_on_invoke", "CONTEXT_CHANGED " + value);
+            }
+        });
+
+        client.on(INITIALIZED, value -> Log.d("EvolvEmitter_events", "INITIALIZED " + value));
+
     }
 
     public void pressHome(View view) {
 // test area -->
-client.confirm();
+        evolvContext.set("authenticated","false",false);
+        //evolvContext.set("device","mobile",false);
 
 
 // TODO: 28.07.2021 commented data   -->
