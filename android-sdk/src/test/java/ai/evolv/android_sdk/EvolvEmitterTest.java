@@ -24,16 +24,13 @@ import okhttp3.RequestBody;
 import okio.Buffer;
 
 import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_CHANGED;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class EvolvClientImplTest {
+public class EvolvEmitterTest {
 
     private static final String rawGenome_one = "{\"47d857cd5e\":{\"home\":{\"cta_text\":\"Click Here\"},\"next\":{\"layout\":\"Default Layout\"}}}";
     private static final String rawAllocation_one = "{\"uid\":\"79211876_16178796481581112\",\"eid\":\"81990a9453\",\"cid\":\"d73fd69be035:81990a9453\",\"ordinal\":1,\"group_id\":\"e43d91d5-54cf-4957-aad8-afd55a86932d\",\"excluded\":false}";
@@ -114,119 +111,16 @@ public class EvolvClientImplTest {
     }
 
     @Test
-    public void testConfirm() {
+    public void tesTransmit() {
 
         HttpClient httpClient = spy(OkHttpClient.class);
-
+        EvolvConfig actualConfig = EvolvConfig.builder(environmentId, httpClient) //8b50696b6c
+                .build();
+        setUpMockedEvolvConfigWithMockedClient(evolvConfig,actualConfig,httpClient);
         EvolvParticipant evolvParticipant = new EvolvParticipant(uID);
-        EvolvConfig config = EvolvConfig.builder(environmentId, httpClient).build();
 
-        EvolvClient client = EvolvClientFactory.init(config, evolvParticipant);
-        EvolvContext evolvContext = ((EvolvClientImpl) client).getEvolvContext();
-
-        //remote context
-        evolvContext.set("Age", "26", false);
-        evolvContext.set("Sex", "female", false);
-        evolvContext.set("view", "home", false);
-
-        JsonObject jsonObjectTemplate = new JsonObject();
-        jsonObjectTemplate.addProperty("uid", uID);
-        jsonObjectTemplate.addProperty("cid",cID);
-        jsonObjectTemplate.addProperty("eid", eID);
-        jsonObjectTemplate.addProperty("type",CONFIRMATION_TYPE);
-
-
-        //notice: there is a delay of 2000 milliseconds to perform the main calculation functionality (the reason is multithreading)
-        try { Thread.sleep(2000); } catch (InterruptedException e) { e.printStackTrace(); }
-        client.confirm();
-
-        verify(httpClient).post(eq("https://participants.evolv.ai/v1/dbcf75051d/events"), argThat(new ArgumentMatcher<RequestBody>() {
-            @Override
-            public boolean matches(Object argument) {
-                //getting body from RequestBody
-                String body = bodyToString((RequestBody) argument);
-                JsonObject jsonObjectResult = parseRawJsonObject(body);
-                //need to remove the "timestamp" because the objects are compared by fields
-                jsonObjectResult.remove("timestamp");
-
-                return jsonObjectTemplate.equals(jsonObjectResult);
-            }
-        }));
+        EvolvEmitter evolvEmitter = new EvolvEmitter(evolvConfig,evolvContext,"events",evolvParticipant);
+        evolvEmitter.transmit();
     }
 
-    private String bodyToString(final RequestBody request){
-        try {
-            final RequestBody copy = request;
-            final Buffer buffer = new Buffer();
-            copy.writeTo(buffer);
-            return buffer.readUtf8();
-        }
-        catch (final IOException e) {
-            return "Something went wrong";
-        }
-    }
-
-    @Test
-    public void testContaminate() {
-
-        HttpClient httpClient = spy(OkHttpClient.class);
-
-        EvolvParticipant evolvParticipant = new EvolvParticipant(uID);
-        EvolvConfig config = EvolvConfig.builder(environmentId, httpClient).build();
-
-        EvolvClient client = EvolvClientFactory.init(config, evolvParticipant);
-        EvolvContext evolvContext = ((EvolvClientImpl) client).getEvolvContext();
-
-        //remote context
-        evolvContext.set("Age", "26", false);
-        evolvContext.set("Sex", "female", false);
-        evolvContext.set("view", "home", false);
-
-        JsonObject jsonObjectReason = new JsonObject();
-        jsonObjectReason.addProperty("reason","error-thrown");
-        jsonObjectReason.addProperty("details","testing contamination");
-
-        JsonObject jsonObjectTemplate = new JsonObject();
-        jsonObjectTemplate.addProperty("uid", uID);
-        jsonObjectTemplate.addProperty("cid",cID);
-        jsonObjectTemplate.addProperty("eid", eID);
-        jsonObjectTemplate.addProperty("type",CONTAMINATION_TYPE);
-        jsonObjectTemplate.add("contaminationReason",jsonObjectReason);
-
-        JsonObject details = new JsonObject();
-        details.addProperty("reason", "error-thrown");
-        details.addProperty("details", "testing contamination");
-
-
-        //notice: there is a delay of 2000 milliseconds to perform the main calculation functionality (the reason is multithreading)
-        try { Thread.sleep(2000); } catch (InterruptedException e) { e.printStackTrace(); }
-        client.contaminate(details, false);
-
-        verify(httpClient).post(eq("https://participants.evolv.ai/v1/dbcf75051d/events"), argThat(new ArgumentMatcher<RequestBody>() {
-            @Override
-            public boolean matches(Object argument) {
-                //getting body from RequestBody
-                String body = bodyToString((RequestBody) argument);
-
-                JsonObject jsonObject = parseRawJsonObject(body);
-                jsonObject.remove("timestamp");
-
-                return jsonObjectTemplate.equals(jsonObject);
-            }
-        }));
-    }
-
-    @Test
-    public void testOn() {
-
-        WaitForIt<JsonObject> waitForIt = new WaitForIt<>();
-        JsonObject payloadMap = new JsonObject();
-        payloadMap.addProperty("test_key", "test_value");
-        //need to create some test payload
-        waitForIt.emit(evolvContext,CONTEXT_CHANGED,payloadMap);
-        //client "on" subscription
-        waitForIt.waitFor(evolvContext, CONTEXT_CHANGED, type -> {
-            Assert.assertEquals(type,payloadMap);
-        });
-    }
 }

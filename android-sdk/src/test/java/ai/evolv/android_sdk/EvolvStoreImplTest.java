@@ -17,8 +17,8 @@ import java.util.Arrays;
 
 public class EvolvStoreImplTest {
     //private static final String rawConfiguration = "{\"_published\":1625448126.7474048,\"_client\":{\"browser\":\"unspecified\",\"device\":\"desktop\",\"location\":\"UA\",\"platform\":\"unspecified\"},\"_experiments\":[{\"web\":{},\"_predicate\":{\"id\":174,\"combinator\":\"and\",\"rules\":[{\"field\":\"Age\",\"operator\":\"equal\",\"value\":\"26\"},{\"combinator\":\"or\",\"rules\":[{\"field\":\"Sex\",\"operator\":\"equal\",\"value\":\"female\"},{\"field\":\"Student\",\"operator\":\"contains\",\"value\":\"High_school\"}]}]},\"home\":{\"_is_entry_point\":true,\"_predicate\":{\"combinator\":\"and\",\"rules\":[{\"field\":\"view\",\"operator\":\"equal\",\"value\":\"home\"}]},\"cta_text\":{\"_is_entry_point\":false,\"_predicate\":null,\"_values\":true,\"_initializers\":true},\"_initializers\":true},\"next\":{\"_is_entry_point\":false,\"_predicate\":{\"combinator\":\"and\",\"rules\":[{\"field\":\"view\",\"operator\":\"equal\",\"value\":\"next\"}]},\"layout\":{\"_is_entry_point\":false,\"_predicate\":null,\"_values\":true,\"_initializers\":true},\"_initializers\":true},\"id\":\"47d857cd5e\",\"_paused\":false},{\"web\":{},\"_predicate\":{\"id\":156,\"combinator\":\"and\",\"rules\":[{\"field\":\"signedin\",\"operator\":\"equal\",\"value\":\"yes\"}]},\"button_color\":{\"_is_entry_point\":false,\"_predicate\":null,\"_values\":true,\"_initializers\":true},\"cta_text\":{\"_is_entry_point\":false,\"_predicate\":null,\"_values\":true,\"_initializers\":true},\"id\":\"7789bf55d7\",\"_paused\":true},{\"web\":{},\"_predicate\":{\"id\":165,\"combinator\":\"and\",\"rules\":[{\"field\":\"authenticated\",\"operator\":\"equal\",\"value\":\"false\"},{\"field\":\"text\",\"operator\":\"contains\",\"value\":\"cancel\"}]},\"button_color\":{\"_is_entry_point\":false,\"_predicate\":{\"combinator\":\"or\",\"rules\":[{\"field\":\"device\",\"operator\":\"equal\",\"value\":\"mobile\"},{\"field\":\"device\",\"operator\":\"equal\",\"value\":\"desktop\"},{\"field\":\"platform\",\"operator\":\"equal\",\"value\":\"windows\"}]},\"_values\":true,\"_initializers\":true},\"cta_text\":{\"_is_entry_point\":false,\"_predicate\":null,\"_values\":true,\"_initializers\":true},\"id\":\"00436dee0b\",\"_paused\":true}]}";
-    private static final String rawExperiment_one = "{\"web\":{},\"_predicate\":{},\"home\":{\"_is_entry_point\":true,\"_predicate\":{\"combinator\":\"and\",\"rules\":[{\"field\":\"view\",\"operator\":\"equal\",\"value\":\"home\"}]},\"cta_text\":{\"_is_entry_point\":false,\"_predicate\":null,\"_values\":true,\"_initializers\":true},\"_initializers\":true},\"next\":{\"_is_entry_point\":false,\"_predicate\":{\"combinator\":\"and\",\"rules\":[{\"field\":\"view\",\"operator\":\"equal\",\"value\":\"next\"}]},\"layout\":{\"_is_entry_point\":false,\"_predicate\":null,\"_values\":true,\"_initializers\":true},\"_initializers\":true},\"_paused\":false}";
-    private static final String rawExperiment_two = "{\"5d0d177a37\":{\"loaded\":{\"loaded_keys\":[\"cta_text_165\",\"button_color_165\"]},\"active\":{\"active_cta_text_165\":\"cta_text_165\",\"active_button_color_165\":\"button_color_165\"}},\"81990a9453\":{\"loaded\":{\"loaded_keys\":[\"home\",\"home.cta_text\",\"next\",\"next.layout\"]}},\"9c83cf9cde\":{\"loaded\":{\"loaded_keys\":[\"button_color\",\"cta_text\"]}}}";
+    private static final String rawExperiment = "{\"web\":{},\"_predicate\":{},\"home\":{\"_is_entry_point\":true,\"_predicate\":{\"combinator\":\"and\",\"rules\":[{\"field\":\"view\",\"operator\":\"equal\",\"value\":\"home\"}]},\"cta_text\":{\"_is_entry_point\":false,\"_predicate\":null,\"_values\":true,\"_initializers\":true},\"_initializers\":true},\"next\":{\"_is_entry_point\":false,\"_predicate\":{\"combinator\":\"and\",\"rules\":[{\"field\":\"view\",\"operator\":\"equal\",\"value\":\"next\"}]},\"layout\":{\"_is_entry_point\":false,\"_predicate\":null,\"_values\":true,\"_initializers\":true},\"_initializers\":true},\"_paused\":false}";
+    private static final String rawExperiment_one = "{\"5d0d177a37\":{\"loaded\":{\"loaded_keys\":[\"cta_text_165\",\"button_color_165\"]}},\"81990a9453\":{\"loaded\":{\"loaded_keys\":[\"home\",\"home.cta_text\",\"next\",\"next.layout\"]}},\"9c83cf9cde\":{\"loaded\":{\"loaded_keys\":[\"button_color\",\"cta_text\"]}}}";
     private static final String rawRemoteContext_one = "{\"Age\":26,\"Sex\":\"female\",\"view\":\"home\",\"experiments\":{\"allocations\":{\"allocs\":{\"uid\":\"79211876_16178796481581112223331\",\"eid\":\"47d857cd5e\",\"cid\":\"5fa0fd38aae6:47d857cd5e\",\"ordinal\":0,\"group_id\":\"511ce252-92b5-4611-a00c-0e4120369c96\",\"excluded\":false}},\"exclusions\":{}}}";
     private static final String rawRemoteContext_two = "{\"authenticated\":false,\"device\":\"mobile\",\"Age\":26,\"Sex\":\"female\",\"view\":\"home\",\"experiments\":{\"allocations\":[{\"uid\":\"79211876_16178796481581112\",\"eid\":\"5d0d177a37\",\"cid\":\"4a10ac5a13bf:5d0d177a37\",\"ordinal\":1,\"group_id\":\"ec5e31c4-9e7e-44c9-b815-7aaf3f8f8ffe\",\"excluded\":false},{\"uid\":\"79211876_16178796481581112\",\"eid\":\"81990a9453\",\"cid\":\"d73fd69be035:81990a9453\",\"ordinal\":1,\"group_id\":\"e43d91d5-54cf-4957-aad8-afd55a86932d\",\"excluded\":false}],\"exclusions\":{}}}";
     private static final String rawRemoteContext_three = "{\"authenticated\":false,\"device\":\"mobile\",\"experiments\":{\"allocations\":[{\"uid\":\"79211876_16178796481581112\",\"eid\":\"5d0d177a37\",\"cid\":\"4a10ac5a13bf:5d0d177a37\",\"ordinal\":1,\"group_id\":\"ec5e31c4-9e7e-44c9-b815-7aaf3f8f8ffe\",\"excluded\":false},{\"uid\":\"79211876_16178796481581112\",\"eid\":\"81990a9453\",\"cid\":\"d73fd69be035:81990a9453\",\"ordinal\":1,\"group_id\":\"e43d91d5-54cf-4957-aad8-afd55a86932d\",\"excluded\":false}],\"exclusions\":{}}}";
@@ -87,7 +87,7 @@ public class EvolvStoreImplTest {
 
         try {
             EvolvStoreImpl evolvStore = new EvolvStoreImpl(evolvConfig, participant, waitForIt);
-            JsonElement current = parseRawJsonElement(rawExperiment_one);
+            JsonElement current = parseRawJsonElement(rawExperiment);
             String parentKey = "";
 
             evolvStore.recurse(current, parentKey);
@@ -209,7 +209,7 @@ public class EvolvStoreImplTest {
         EvolvStoreImpl evolvStore = new EvolvStoreImpl(evolvConfig, participant, waitForIt);
 
         EvolvStoreImpl.KeyStates configKeyStates = new EvolvStoreImpl.KeyStates();
-        configKeyStates.experiments = parseRawJsonObject(rawExperiment_two);
+        configKeyStates.experiments = parseRawJsonObject(rawExperiment_one);
 
         evolvStore.setActiveAndEntryKeyStates(version, evolvContext, config, allocations, configKeyStates);
 
@@ -255,7 +255,7 @@ public class EvolvStoreImplTest {
         EvolvStoreImpl evolvStore = new EvolvStoreImpl(evolvConfig, participant, waitForIt);
 
         EvolvStoreImpl.KeyStates configKeyStates = new EvolvStoreImpl.KeyStates();
-        configKeyStates.experiments = parseRawJsonObject(rawExperiment_two);
+        configKeyStates.experiments = parseRawJsonObject(rawExperiment_one);
 
         evolvStore.setActiveAndEntryKeyStates(version, evolvContext, config, allocations, configKeyStates);
 
@@ -303,7 +303,7 @@ public class EvolvStoreImplTest {
         EvolvStoreImpl evolvStore = new EvolvStoreImpl(evolvConfig, participant, waitForIt);
 
         EvolvStoreImpl.KeyStates configKeyStates = new EvolvStoreImpl.KeyStates();
-        configKeyStates.experiments = parseRawJsonObject(rawExperiment_two);
+        configKeyStates.experiments = parseRawJsonObject(rawExperiment_one);
 
         evolvStore.setActiveAndEntryKeyStates(version, evolvContext, config, allocations, configKeyStates);
 

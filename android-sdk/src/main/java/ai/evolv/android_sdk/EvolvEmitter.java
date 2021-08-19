@@ -48,9 +48,6 @@ class EvolvEmitter {
 
     }
 
-    public EvolvEmitter() {
-    }
-
     // TODO: 16.07.2021 neet unit test
     boolean send(String url, RequestBody formBody, boolean sync) {
 
@@ -60,7 +57,7 @@ class EvolvEmitter {
             @Override
             public void run() {
                 try {
-                    Log.d("EvolvEmitter_events", "response: " + responseFuture.toString());
+                    Log.d("EvolvEmitter_response", "response: " + responseFuture.toString());
                 } catch (Exception e) {
                     Log.d("EvolvEmitter_data", "There was a failure while retrieving the allocations.", e);
                 }
@@ -90,7 +87,7 @@ class EvolvEmitter {
     }
 
     // TODO: 16.07.2021 need unit test
-    private void transmit() {
+    void transmit() {
 
         boolean sync = false;
         if (messages.size() == 0 || blockTransmit) {
@@ -127,7 +124,7 @@ class EvolvEmitter {
                 }
 
 //                dataCollectionMsgs.add(smallBatch);
-//
+
 //                boolean allDone = true;
 //
 //                if(EvolvStoreImpl.futureList == null){
@@ -165,7 +162,10 @@ class EvolvEmitter {
         RequestBody formBody = RequestBody.create(JSON, "{\"uid\": " + uid +
                 ",\"messages\":" + messages + " }");
 
-        Log.d("EvolvEmitter_data_1", "1: " + "{\"uid\": " + uid +
+
+        Log.d("EvolvEmitter_data_thrds", "" + Thread.currentThread().getName());
+
+        Log.d("EvolvEmitter_data", "1: " + "{\"uid\": " + uid +
                 ",\"messages\":" + messages + " }");
 
         return formBody;

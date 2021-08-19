@@ -470,7 +470,7 @@ public class EvolvClientImpl implements EvolvClient {
     public void on(String topic, EvolvInvocation listener) {
         waitForIt.waitFor(evolvContext,topic,listener);
     }
-
+    
     @Override
     public boolean isActive(String key) {
         return evolvStore.getValueActive(key);
@@ -519,12 +519,6 @@ public class EvolvClientImpl implements EvolvClient {
     @Override
     public void preload(ArrayList<String> prefixes) {
         evolvStore.preload(prefixes);
-    }
-
-    // TODO: 24.07.2021 an explanation is needed here because it does not work in the js SDK
-    @Override
-    public JsonElement getConfig(String key) {
-        return evolvStore.getConfig(key);
     }
 
     @Override

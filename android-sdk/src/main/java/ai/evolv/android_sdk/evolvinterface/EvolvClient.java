@@ -159,13 +159,6 @@ public interface EvolvClient {
     boolean isActive(String key);
 
     /**
-     * Get the configuration for a specified key.
-     *
-     * @param key The key to retrieve the configuration for.
-     */
-    JsonElement getConfig(String key);
-
-    /**
      * Clears the active keys to reset the key states.
      *
      * @param prefix The prefix of the keys clear.

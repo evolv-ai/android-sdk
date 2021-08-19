@@ -969,11 +969,6 @@ class EvolvStoreImpl {
         return false;
     }
 
-    // TODO: 24.07.2021 an explanation is needed here because it does not work in the js SDK
-    JsonElement getConfig(String key) {
-        return helper.getValueForKey(key, config);
-    }
-
     JsonElement getValue(String key) {
         for (Map.Entry<String, JsonElement> genomeEntry : effectiveGenome.entrySet()) {
             JsonElement element = helper.getValueForKey(key, genomeEntry.getValue());
