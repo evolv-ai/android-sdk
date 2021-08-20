@@ -25,8 +25,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 import ai.evolv.android_sdk.evolvinterface.EvolvCallBack;
 import ai.evolv.android_sdk.evolvinterface.EvolvContext;
@@ -84,7 +84,8 @@ class EvolvStoreImpl {
     private CountDownLatch latch = new CountDownLatch(1);
     //private Map<String,EvolvCallBack> subscriptions = new LinkedHashMap();
     private Map<EvolvCallBack, Pair<String, EvolvType>> subscriptions = new LinkedHashMap<>();
-
+    private ExecutorService executor;
+    private Future<?> future = null;
 
     @FunctionalInterface
     interface Filter<T> {
@@ -95,7 +96,7 @@ class EvolvStoreImpl {
         reevaluateContext();
     };
 
-    private class KeyStates {
+    static class KeyStates {
 
         Set<String> needed = new HashSet<String>();
         Set requested = new HashSet();
@@ -211,9 +212,7 @@ class EvolvStoreImpl {
             @Override
             public void run() {
                 try {
-                    // TODO: use a non-depreciated method "JsonParser"
-                    JsonParser parser = new JsonParser();
-                    JsonArray allocations = parser.parse(responseFutureAllocations.get()).getAsJsonArray();
+                    JsonArray allocations = JsonParser.parseString(responseFutureAllocations.get()).getAsJsonArray();
                     setFutureAllocations.set(allocations);
                     futureAllocations = setFutureAllocations;
 
@@ -235,9 +234,7 @@ class EvolvStoreImpl {
             @Override
             public void run() {
                 try {
-                    // TODO: use a non-depreciated method "JsonParser"
-                    JsonParser parser = new JsonParser();
-                    JsonObject configuration = parser.parse(responseFutureConfiguration.get()).getAsJsonObject();
+                    JsonObject configuration = JsonParser.parseString(responseFutureConfiguration.get()).getAsJsonObject();
                     setFutureConfiguration.set(configuration);
                     futureConfiguration = setFutureConfiguration;
 
@@ -305,7 +302,7 @@ class EvolvStoreImpl {
             for (Map.Entry<String, JsonElement> activeKey : active.getAsJsonObject().entrySet()) {
                 activeKeys.addProperty(activeKey.getKey(), activeKey.getValue().getAsString());
 
-                if (effectiveGenome != null) {
+                if (effectiveGenome != null && effectiveGenome.size() != 0) {
                   JsonObject value = effectiveGenome.get( "activeGenome_"+ expKeyStates.getKey()).getAsJsonObject();
 
                     JsonElement pruned = helper.prune(value, active);
@@ -427,8 +424,7 @@ class EvolvStoreImpl {
         return effectiveObject;
     }
 
-    // TODO: 30.06.2021 need a unit test
-    private void setActiveAndEntryKeyStates(int version,
+    void setActiveAndEntryKeyStates(int version,
                                             EvolvContext evolvContext,
                                             JsonObject config,
                                             JsonArray allocations,
@@ -559,8 +555,7 @@ class EvolvStoreImpl {
             expLoadedList.clear();
             flattenKeys(alloc.get("genome"));
 
-            JsonParser parser = new JsonParser();
-            JsonArray jsonArray = parser.parse(expLoadedList.toString()).getAsJsonArray();
+            JsonArray jsonArray = JsonParser.parseString(expLoadedList.toString()).getAsJsonArray();
 
             expLoaded.add("loaded_keys", jsonArray);
 
@@ -607,9 +602,7 @@ class EvolvStoreImpl {
         flattenKeys(clean);
 
         endsWithFilter();
-        // TODO: use a non-depreciated method "JsonParser"
-        JsonParser parser = new JsonParser();
-        JsonArray jsonArray = parser.parse(expLoadedList.toString()).getAsJsonArray();
+        JsonArray jsonArray = JsonParser.parseString(expLoadedList.toString()).getAsJsonArray();
 
         expLoaded.add("loaded_keys", jsonArray);
 
@@ -799,55 +792,50 @@ class EvolvStoreImpl {
         performAction(type, value, callBack);
     }
 
-    private Executor getCachedThreadPool() {
-        return Executors.newCachedThreadPool();
-    }
-
     private void performAction(EvolvType type, String value, EvolvCallBack callBack) {
-        getCachedThreadPool().execute(new Runnable() {
-            @Override
-            public void run() {
 
-                switch (type) {
-                    case getActiveKeys: {
-                        if (value.isEmpty()) {
-                            JsonObject activeKeys = getActiveKeys();
-                            callBack.invoke(activeKeys);
-                        } else {
-                            JsonObject activeKeysPrefix = getActiveKeys(value);
-                            callBack.invoke(activeKeysPrefix);
-                        }
-                        break;
+        executor = executor == null ?  evolvConfig.getExecutorService() : executor;
+
+        future = executor.submit(() -> {
+            switch (type) {
+                case getActiveKeys: {
+                    if (value.isEmpty()) {
+                        JsonObject activeKeys = getActiveKeys();
+                        callBack.invoke(activeKeys);
+                    } else {
+                        JsonObject activeKeysPrefix = getActiveKeys(value);
+                        callBack.invoke(activeKeysPrefix);
                     }
-                    case get: {
-                        JsonElement element = getValue(value);
-                        JsonElement result = JsonNull.INSTANCE;
+                    break;
+                }
+                case get: {
+                    JsonElement element = getValue(value);
+                    JsonElement result = JsonNull.INSTANCE;
 
-                        if (element == null) {
-                            result = JsonNull.INSTANCE;
-                            callBack.invoke(result);
-                            break;
-                        }
-                        if (element.isJsonPrimitive()) {
-                            result = element.getAsJsonPrimitive();
-                        } else if (element.isJsonObject()) {
-                            result = element.getAsJsonObject();
-                        }
+                    if (element == null) {
+                        result = JsonNull.INSTANCE;
                         callBack.invoke(result);
                         break;
                     }
-                    case isActive: {
-                        boolean isActive = getValueActive(value);
-                        callBack.invoke(isActive);
-                        break;
+                    if (element.isJsonPrimitive()) {
+                        result = element.getAsJsonPrimitive();
+                    } else if (element.isJsonObject()) {
+                        result = element.getAsJsonObject();
                     }
-                    case activeEntryPoints: {
-                        JsonElement activeEntryPoints = activeEntryPoints();
-                        callBack.invoke(activeEntryPoints);
-                        break;
-                    }
-                    default:
+                    callBack.invoke(result);
+                    break;
                 }
+                case isActive: {
+                    boolean isActive = getValueActive(value);
+                    callBack.invoke(isActive);
+                    break;
+                }
+                case activeEntryPoints: {
+                    JsonElement activeEntryPoints = activeEntryPoints();
+                    callBack.invoke(activeEntryPoints);
+                    break;
+                }
+                default:
             }
         });
     }
@@ -905,11 +893,6 @@ class EvolvStoreImpl {
             }
         }
         return false;
-    }
-
-    // TODO: 24.07.2021 an explanation is needed here because it does not work in the js SDK
-    JsonElement getConfig(String key) {
-        return helper.getValueForKey(key, config);
     }
 
     JsonElement getValue(String key) {

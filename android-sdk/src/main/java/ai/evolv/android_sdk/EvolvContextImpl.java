@@ -55,6 +55,10 @@ public class EvolvContextImpl implements EvolvContext {
         this.remoteContext = remoteContext;
     }
 
+    public void setInitialized(boolean initialized) {
+        this.initialized = initialized;
+    }
+
     @Override
     public void initialize(String uid,
                            JsonObject remoteContext,
@@ -83,35 +87,28 @@ public class EvolvContextImpl implements EvolvContext {
         } else {
             //this.localContext = new HashMap<>();
         }
-
         initialized = true;
 
         JsonElement resolve = resolve();
-        // TODO: 13.07.2021 remove
-//        List<Object> objects = new ArrayList<>();
-//        objects.add(CONTEXT_INITIALIZED);
-//        objects.add(resolve);
-
         JsonObject object = new JsonObject();
         object.addProperty("type", CONTEXT_INITIALIZED);
         object.add("value", resolve);
-
-
+        
         waitForIt.emit(this, CONTEXT_INITIALIZED, object);
     }
 
 
     @Override
     public boolean set(String key, Object value, boolean local) {
+
         //checking incoming type
         JsonElement jsonValue = null;
         if (value instanceof JsonElement) {
             jsonValue = (JsonElement) value;
         } else if (value instanceof String) {
-            // TODO: use a non-depreciated method "JsonParser"
-            JsonParser parser = new JsonParser();
+
             String modifyValue = ((String) value).replaceAll(" ", ".");
-            jsonValue = parser.parse(modifyValue);
+            jsonValue = JsonParser.parseString(modifyValue);
         }
 
         ensureInitialized();
@@ -119,16 +116,17 @@ public class EvolvContextImpl implements EvolvContext {
         JsonElement context = local ? localContext : remoteContext;
         JsonElement before = helper.getValueForKey(key, context);
 
-        // TODO: 04.06.2021 checking value type (because "before" and "value" need to compare correctly)
         if (before != null) {
-            if (before == value || before.toString().equals(value)) {
-                return false;
-            }
+            if(before.isJsonPrimitive()){
+                if (before.getAsString().equals(value) || before.toString().equals(value)) {
+                    return false;
+                }
+            }else return false;
         }
 
         helper.setKeyToValue(key, jsonValue, context);
 
-        JsonObject updated = this.resolve();
+        JsonObject updated = resolve();
 
         if (before == null) {
 
@@ -151,26 +149,25 @@ public class EvolvContextImpl implements EvolvContext {
             objects.addProperty("local", false);
             objects.add("updated", updated);
 
-
             waitForIt.emit(this, CONTEXT_VALUE_CHANGED, objects);
         }
 
         waitForIt.emit(this, CONTEXT_CHANGED, updated);
         return true;
+
     }
 
-    // TODO: 27.07.2021 testing! (used in the store)
     @Override
     public JsonObject resolve() {
         ensureInitialized();
-// TODO: 26.07.2021 uncomment and need to test!
-//        for (Map.Entry<String, JsonElement> entry : localContext.entrySet()) {
-//            remoteContext.add(entry.getKey(),entry.getValue());
-//        }
-//
-//        return remoteContext;
+        JsonObject jsonLocalObject = localContext.deepCopy();
+        JsonObject jsonRemoteObject = remoteContext.deepCopy();
 
-        return new JsonObject();
+        // TODO: 20.08.2021 need another implementation like a npm deepmerge
+        for (Map.Entry<String, JsonElement> entry : jsonLocalObject.entrySet()) {
+            jsonRemoteObject.add(entry.getKey(),entry.getValue());
+        }
+        return jsonRemoteObject;
     }
 
     private void ensureInitialized() {

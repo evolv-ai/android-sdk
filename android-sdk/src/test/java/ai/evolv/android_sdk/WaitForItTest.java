@@ -37,18 +37,15 @@ public class WaitForItTest {
 
 
     JsonObject parseRawJsonObject(String raw) {
-        JsonParser parser = new JsonParser();
-        return parser.parse(raw).getAsJsonObject();
+        return JsonParser.parseString(raw).getAsJsonObject();
     }
 
     JsonElement parseRawJsonElement(String raw) {
-        JsonParser parser = new JsonParser();
-        return parser.parse(raw).getAsJsonObject();
+        return JsonParser.parseString(raw).getAsJsonObject();
     }
 
     JsonArray parseRawJsonElementAsArray(String raw) {
-        JsonParser parser = new JsonParser();
-        return parser.parse(raw).getAsJsonArray();
+        return JsonParser.parseString(raw).getAsJsonArray();
     }
 
     @Before
