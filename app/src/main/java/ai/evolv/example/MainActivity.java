@@ -5,39 +5,26 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListenableFutureTask;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.SettableFuture;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
-import ai.evolv.android_sdk.EvolvClientImpl;
-import ai.evolv.android_sdk.evolvinterface.EvolvAction;
-import ai.evolv.android_sdk.evolvinterface.EvolvClient;
 import ai.evolv.android_sdk.EvolvClientFactory;
+import ai.evolv.android_sdk.EvolvClientImpl;
 import ai.evolv.android_sdk.EvolvConfig;
 import ai.evolv.android_sdk.EvolvParticipant;
+import ai.evolv.android_sdk.evolvinterface.EvolvAction;
+import ai.evolv.android_sdk.evolvinterface.EvolvClient;
 import ai.evolv.android_sdk.evolvinterface.EvolvContext;
-import ai.evolv.android_sdk.evolvinterface.EvolvInvocation;
 import ai.evolv.android_sdk.httpclients.HttpClient;
 import ai.evolv.android_sdk.httpclients.OkHttpClient;
 
-import static ai.evolv.android_sdk.EvolvClientImpl.INITIALIZED;
 import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_CHANGED;
-import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_INITIALIZED;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -73,10 +60,10 @@ public class MainActivity extends AppCompatActivity {
         //case 2
         evolvContext.set("authenticated","false",false);
         evolvContext.set("device","mobile",false);
-        //case 3
-        evolvContext.set("Age", "26", false);
-        evolvContext.set("Sex", "female", false);
-        evolvContext.set("view", "home", false);
+//        //case 3
+//        evolvContext.set("Age", "26", false);
+//        evolvContext.set("Sex", "female", false);
+//        evolvContext.set("view", "home", false);
 
         client.subscribeGet("next.layout", "Default Layout", (EvolvAction<JsonElement>) value ->
                 runOnUiThread(() -> {
@@ -124,7 +111,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void pressHome(View view) {
 // test area -->
-        evolvContext.set("test_key","test_value",false);
+
 
 // TODO: 28.07.2021 commented data   -->
 

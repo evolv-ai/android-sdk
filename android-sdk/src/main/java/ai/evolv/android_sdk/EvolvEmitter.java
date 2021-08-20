@@ -1,7 +1,5 @@
 package ai.evolv.android_sdk;
 
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -11,13 +9,12 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import ai.evolv.android_sdk.evolvinterface.EvolvContext;
 import okhttp3.MediaType;
@@ -27,6 +24,7 @@ class EvolvEmitter {
 
     public final int BATCH_SIZE = 25;
     MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+    static int SCHEDULED_EXECUTOR_TIME = 5000;
 
     private String endpoint;
     private EvolvContext evolvContext;
@@ -35,8 +33,9 @@ class EvolvEmitter {
     private int timer;
     private EvolvConfig evolvConfig;
     private EvolvParticipant participant;
-    private JsonArray dataCollectionMsgs = new JsonArray();
+    private DataCache dataCache = new DataCache(50);
 
+    private AtomicBoolean atomicBoolean = new AtomicBoolean(true);
 
     public EvolvEmitter(EvolvConfig evolvConfig, EvolvContext evolvContext, String action, EvolvParticipant participant) {
 
@@ -95,7 +94,7 @@ class EvolvEmitter {
         }
 
         JsonArray batch = messages.deepCopy();
-        clearMessages();
+        clearMessages(messages);
 
         if (timer != 0) {
             clearTimeout();
@@ -116,43 +115,31 @@ class EvolvEmitter {
                 send(endpoint, formBody, sync);
             }
         } else {
-            while (true) {
-                // TODO: 12.07.2021 copy a part of array
-                JsonArray smallBatch = batch.deepCopy();//.slice(0, BATCH_SIZE);
-                if (smallBatch.size() == 0) {
-                    break;
-                }
+            JsonArray smallBatch = batch.deepCopy();
+            if (smallBatch.size() == 0) {
+                return;
+            }
+            dataCache.putEntry(smallBatch);
 
-//                dataCollectionMsgs.add(smallBatch);
+            if (atomicBoolean.get()) {
+                atomicBoolean.set(false);
 
-//                boolean allDone = true;
-//
-//                if(EvolvStoreImpl.futureList == null){
-//                    Log.d("count_cust", "1" );
-//
-//                    break;
-//                }
-//
-//                for (Future<?> future : EvolvStoreImpl.futureList) {
-//                    if(!future.isDone()){
-//                        allDone = false;
-//                    }
-//                }
-//
-//                if(allDone){
-//                    RequestBody formBody = wrapMessagesData(smallBatch);
-//                    Log.d("count_cust", "3" );
-//
-//                    send(endpoint, formBody, sync);
-//                }
-
-                RequestBody formBody = wrapMessagesData(smallBatch);
-
-                send(endpoint, formBody, sync);
-
-                break;
+                ScheduledExecutorService service = evolvConfig.getScheduledExecutorService();
+                service.schedule(new Runnable() {
+                    @Override
+                    public void run() {
+                        sendPreparation(sync);
+                        atomicBoolean.set(true);
+                    }
+                }, SCHEDULED_EXECUTOR_TIME, TimeUnit.MILLISECONDS);
             }
         }
+    }
+
+    void sendPreparation(boolean sync) {
+        RequestBody formBody = wrapMessagesData(dataCache.getCacheArray());
+        send(endpoint, formBody, sync);
+        dataCache.clearCacheArray();
     }
 
     private RequestBody wrapMessagesData(JsonArray msgArray) {
@@ -161,9 +148,6 @@ class EvolvEmitter {
         String uid = gson.toJson(participant.getUserId());
         RequestBody formBody = RequestBody.create(JSON, "{\"uid\": " + uid +
                 ",\"messages\":" + messages + " }");
-
-
-        Log.d("EvolvEmitter_data_thrds", "" + Thread.currentThread().getName());
 
         Log.d("EvolvEmitter_data", "1: " + "{\"uid\": " + uid +
                 ",\"messages\":" + messages + " }");
@@ -217,14 +201,47 @@ class EvolvEmitter {
         transmit();
     }
 
-    private void clearMessages() {
+    private void clearMessages(JsonArray msgs) {
         List<JsonElement> keys = new ArrayList<>();
-        for (JsonElement s : messages) {
+        for (JsonElement s : msgs) {
             keys.add(s);
         }
 
         for (JsonElement key : keys) {
-            messages.remove(key);
+            msgs.remove(key);
         }
     }
+
+    private class DataCache {
+
+        private JsonArray cacheArray;
+
+        DataCache(int capacity) {
+            this.cacheArray = new JsonArray(capacity);
+        }
+
+        JsonArray getCacheArray() {
+            return cacheArray;
+        }
+
+        int sizeCacheArray() {
+            return cacheArray.size();
+        }
+
+        void putEntry(JsonElement element) {
+            cacheArray.add(element);
+        }
+
+        void clearCacheArray() {
+            List<JsonElement> keys = new ArrayList<>();
+            for (JsonElement s : cacheArray) {
+                keys.add(s);
+            }
+
+            for (JsonElement key : keys) {
+                cacheArray.remove(key);
+            }
+        }
+    }
+
 }

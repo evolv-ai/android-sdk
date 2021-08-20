@@ -26,7 +26,6 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import ai.evolv.android_sdk.evolvinterface.EvolvCallBack;
@@ -87,8 +86,6 @@ class EvolvStoreImpl {
     private Map<EvolvCallBack, Pair<String, EvolvType>> subscriptions = new LinkedHashMap<>();
     private ExecutorService executor;
     private Future<?> future = null;
-    static List<Future<?>> futureList = null;
-
 
     @FunctionalInterface
     interface Filter<T> {
@@ -215,9 +212,7 @@ class EvolvStoreImpl {
             @Override
             public void run() {
                 try {
-                    // TODO: use a non-depreciated method "JsonParser"
-                    JsonParser parser = new JsonParser();
-                    JsonArray allocations = parser.parse(responseFutureAllocations.get()).getAsJsonArray();
+                    JsonArray allocations = JsonParser.parseString(responseFutureAllocations.get()).getAsJsonArray();
                     setFutureAllocations.set(allocations);
                     futureAllocations = setFutureAllocations;
 
@@ -239,9 +234,7 @@ class EvolvStoreImpl {
             @Override
             public void run() {
                 try {
-                    // TODO: use a non-depreciated method "JsonParser"
-                    JsonParser parser = new JsonParser();
-                    JsonObject configuration = parser.parse(responseFutureConfiguration.get()).getAsJsonObject();
+                    JsonObject configuration = JsonParser.parseString(responseFutureConfiguration.get()).getAsJsonObject();
                     setFutureConfiguration.set(configuration);
                     futureConfiguration = setFutureConfiguration;
 
@@ -562,8 +555,7 @@ class EvolvStoreImpl {
             expLoadedList.clear();
             flattenKeys(alloc.get("genome"));
 
-            JsonParser parser = new JsonParser();
-            JsonArray jsonArray = parser.parse(expLoadedList.toString()).getAsJsonArray();
+            JsonArray jsonArray = JsonParser.parseString(expLoadedList.toString()).getAsJsonArray();
 
             expLoaded.add("loaded_keys", jsonArray);
 
@@ -610,9 +602,7 @@ class EvolvStoreImpl {
         flattenKeys(clean);
 
         endsWithFilter();
-        // TODO: use a non-depreciated method "JsonParser"
-        JsonParser parser = new JsonParser();
-        JsonArray jsonArray = parser.parse(expLoadedList.toString()).getAsJsonArray();
+        JsonArray jsonArray = JsonParser.parseString(expLoadedList.toString()).getAsJsonArray();
 
         expLoaded.add("loaded_keys", jsonArray);
 
@@ -802,116 +792,52 @@ class EvolvStoreImpl {
         performAction(type, value, callBack);
     }
 
-    private ExecutorService getCachedThreadPool() {
-        Log.d("myLog_executor_1", "1performAction: ");
-
-        return Executors.newCachedThreadPool();
-    }
-
     private void performAction(EvolvType type, String value, EvolvCallBack callBack) {
 
-        executor = executor == null ?  getCachedThreadPool() : executor;
+        executor = executor == null ?  evolvConfig.getExecutorService() : executor;
 
-        futureList = new ArrayList<Future<?>>();
-        future = executor.submit(new Runnable() {
-            @Override
-            public void run() {
-                Log.d("myLog_executor", "2performAction:  " + executor +"  " + Thread.currentThread().getName());
-
-                switch (type) {
-                    case getActiveKeys: {
-                        if (value.isEmpty()) {
-                            JsonObject activeKeys = getActiveKeys();
-                            callBack.invoke(activeKeys);
-                        } else {
-                            JsonObject activeKeysPrefix = getActiveKeys(value);
-                            callBack.invoke(activeKeysPrefix);
-                        }
-                        break;
+        future = executor.submit(() -> {
+            switch (type) {
+                case getActiveKeys: {
+                    if (value.isEmpty()) {
+                        JsonObject activeKeys = getActiveKeys();
+                        callBack.invoke(activeKeys);
+                    } else {
+                        JsonObject activeKeysPrefix = getActiveKeys(value);
+                        callBack.invoke(activeKeysPrefix);
                     }
-                    case get: {
-                        JsonElement element = getValue(value);
-                        JsonElement result = JsonNull.INSTANCE;
+                    break;
+                }
+                case get: {
+                    JsonElement element = getValue(value);
+                    JsonElement result = JsonNull.INSTANCE;
 
-                        if (element == null) {
-                            result = JsonNull.INSTANCE;
-                            callBack.invoke(result);
-                            break;
-                        }
-                        if (element.isJsonPrimitive()) {
-                            result = element.getAsJsonPrimitive();
-                        } else if (element.isJsonObject()) {
-                            result = element.getAsJsonObject();
-                        }
+                    if (element == null) {
+                        result = JsonNull.INSTANCE;
                         callBack.invoke(result);
                         break;
                     }
-                    case isActive: {
-                        boolean isActive = getValueActive(value);
-                        callBack.invoke(isActive);
-                        break;
+                    if (element.isJsonPrimitive()) {
+                        result = element.getAsJsonPrimitive();
+                    } else if (element.isJsonObject()) {
+                        result = element.getAsJsonObject();
                     }
-                    case activeEntryPoints: {
-                        JsonElement activeEntryPoints = activeEntryPoints();
-                        callBack.invoke(activeEntryPoints);
-                        break;
-                    }
-                    default:
+                    callBack.invoke(result);
+                    break;
                 }
+                case isActive: {
+                    boolean isActive = getValueActive(value);
+                    callBack.invoke(isActive);
+                    break;
+                }
+                case activeEntryPoints: {
+                    JsonElement activeEntryPoints = activeEntryPoints();
+                    callBack.invoke(activeEntryPoints);
+                    break;
+                }
+                default:
             }
         });
-
-        futureList.add(future);
-
-
-
-//        executor.execute(new Runnable() {
-//            @Override
-//            public void run() {
-//                Log.d("myLog_executor", "2performAction:  " + executor +"  " + Thread.currentThread().getName());
-//
-//                switch (type) {
-//                    case getActiveKeys: {
-//                        if (value.isEmpty()) {
-//                            JsonObject activeKeys = getActiveKeys();
-//                            callBack.invoke(activeKeys);
-//                        } else {
-//                            JsonObject activeKeysPrefix = getActiveKeys(value);
-//                            callBack.invoke(activeKeysPrefix);
-//                        }
-//                        break;
-//                    }
-//                    case get: {
-//                        JsonElement element = getValue(value);
-//                        JsonElement result = JsonNull.INSTANCE;
-//
-//                        if (element == null) {
-//                            result = JsonNull.INSTANCE;
-//                            callBack.invoke(result);
-//                            break;
-//                        }
-//                        if (element.isJsonPrimitive()) {
-//                            result = element.getAsJsonPrimitive();
-//                        } else if (element.isJsonObject()) {
-//                            result = element.getAsJsonObject();
-//                        }
-//                        callBack.invoke(result);
-//                        break;
-//                    }
-//                    case isActive: {
-//                        boolean isActive = getValueActive(value);
-//                        callBack.invoke(isActive);
-//                        break;
-//                    }
-//                    case activeEntryPoints: {
-//                        JsonElement activeEntryPoints = activeEntryPoints();
-//                        callBack.invoke(activeEntryPoints);
-//                        break;
-//                    }
-//                    default:
-//                }
-//            }
-//        });
     }
 
     JsonObject getActiveKeys(String prefix) {

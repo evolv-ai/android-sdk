@@ -1,30 +1,16 @@
 package ai.evolv.android_sdk;
 
-import android.util.Log;
-
-import androidx.annotation.NonNull;
-import androidx.lifecycle.Lifecycle;
-import androidx.lifecycle.LifecycleOwner;
-import androidx.lifecycle.Observer;
-
-import com.google.common.util.concurrent.SettableFuture;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
-import org.json.JSONArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 import ai.evolv.android_sdk.evolvinterface.EvolvAction;
 import ai.evolv.android_sdk.evolvinterface.EvolvCallBack;
@@ -39,7 +25,6 @@ import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_VALUE_CHANGED;
 import static ai.evolv.android_sdk.EvolvContextImpl.CONTEXT_VALUE_REMOVED;
 import static ai.evolv.android_sdk.EvolvStoreImpl.EFFECTIVE_GENOME_UPDATED;
 import static ai.evolv.android_sdk.EvolvStoreImpl.EMPTY_STRING;
-import static ai.evolv.android_sdk.EvolvStoreImpl.REQUEST_FAILED;
 
 public class EvolvClientImpl implements EvolvClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(EvolvClientImpl.class);
@@ -101,63 +86,62 @@ public class EvolvClientImpl implements EvolvClient {
             }
         }
 
-        evolvContext.initialize(uid, remoteContext, localContext);
-        evolvStore.initialize(evolvContext);
+                evolvContext.initialize(uid, remoteContext, localContext);
+                evolvStore.initialize(evolvContext);
 
-        // TODO: 31.05.2021 add
+                // TODO: 31.05.2021 add
 
-        if (evolvConfig.isAnalytics()) {
+                if (evolvConfig.isAnalytics()) {
 
-            waitForIt.waitFor(evolvContext, CONTEXT_INITIALIZED, (EvolvInvocation<JsonObject>) type -> {
-                JsonObject payloadMap = type;
-                contextBeacon.emit(CONTEXT_INITIALIZED, payloadMap, false);
-            });
+                    waitForIt.waitFor(evolvContext, CONTEXT_INITIALIZED, (EvolvInvocation<JsonObject>) type -> {
+                        JsonObject payloadMap = type;
+                        contextBeacon.emit(CONTEXT_INITIALIZED, payloadMap, false);
+                    });
 
-            waitForIt.waitFor(evolvContext, CONTEXT_VALUE_ADDED, (EvolvInvocation<JsonObject>) type -> {
-                if (type.has("local")) {
-                    if (type.get("local").getAsBoolean()) {
-                        return;
+                    waitForIt.waitFor(evolvContext, CONTEXT_VALUE_ADDED, (EvolvInvocation<JsonObject>) type -> {
+                        if (type.has("local")) {
+                            if (type.get("local").getAsBoolean()) {
+                                return;
+                            }
+                        }
+                        JsonObject payloadMap = type;
+
+                        contextBeacon.emit(CONTEXT_VALUE_ADDED, payloadMap, false);
+                    });
+
+                    waitForIt.waitFor(evolvContext, CONTEXT_VALUE_CHANGED, (EvolvInvocation<JsonObject>) type -> {
+
+                        if (type.has("local")) {
+                            if (type.get("local").getAsBoolean()) {
+                                return;
+                            }
+                        }
+
+                        JsonObject payloadMap = type;
+
+                        contextBeacon.emit(CONTEXT_VALUE_CHANGED, payloadMap, false);
+                    });
+
+                    waitForIt.waitFor(evolvContext, CONTEXT_VALUE_REMOVED, (EvolvInvocation<JsonObject>) type -> {
+
+                        if (type.has("local")) {
+                            if (type.get("local").getAsBoolean()) {
+                                return;
+                            }
+                        }
+
+                        JsonObject payloadMap = type;
+
+                        contextBeacon.emit(CONTEXT_VALUE_REMOVED, payloadMap, false);
+                    });
+
+                    if (evolvConfig.isAutoConfirm()) {
+                        confirm();
                     }
+
+                    initialized = true;
+                    waitForIt.emit(evolvContext, INITIALIZED, evolvConfig);
                 }
-                JsonObject payloadMap = type;
-
-                contextBeacon.emit(CONTEXT_VALUE_ADDED, payloadMap, false);
-            });
-
-            waitForIt.waitFor(evolvContext, CONTEXT_VALUE_CHANGED, (EvolvInvocation<JsonObject>) type -> {
-
-                if (type.has("local")) {
-                    if (type.get("local").getAsBoolean()) {
-                        return;
-                    }
-                }
-
-                JsonObject payloadMap = type;
-
-                contextBeacon.emit(CONTEXT_VALUE_CHANGED, payloadMap, false);
-            });
-
-            waitForIt.waitFor(evolvContext, CONTEXT_VALUE_REMOVED, (EvolvInvocation<JsonObject>) type -> {
-
-                if (type.has("local")) {
-                    if (type.get("local").getAsBoolean()) {
-                        return;
-                    }
-                }
-
-                JsonObject payloadMap = type;
-
-                contextBeacon.emit(CONTEXT_VALUE_REMOVED, payloadMap, false);
-            });
-
-            if (evolvConfig.isAutoConfirm()) {
-                confirm();
-            }
-
-            initialized = true;
-            waitForIt.emit(evolvContext, INITIALIZED, evolvConfig);
-        }
-
     }
 
     @Override
@@ -468,9 +452,9 @@ public class EvolvClientImpl implements EvolvClient {
 
     @Override
     public void on(String topic, EvolvInvocation listener) {
-        waitForIt.waitFor(evolvContext,topic,listener);
+        waitForIt.waitFor(evolvContext, topic, listener);
     }
-    
+
     @Override
     public boolean isActive(String key) {
         return evolvStore.getValueActive(key);

@@ -1,6 +1,9 @@
 package ai.evolv.android_sdk;
 
-import ai.evolv.android_sdk.evolvinterface.EvolvAllocationStore;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+
 import ai.evolv.android_sdk.httpclients.HttpClient;
 
 public class EvolvConfig {
@@ -22,6 +25,8 @@ public class EvolvConfig {
     private final boolean autoConfirm = false;
     private final boolean analytics = true;
     private final boolean bufferEvents = false;
+    private final ExecutorService executorService;
+    private final ScheduledExecutorService executorScheduled;
 
     private EvolvConfig(String httpScheme, String domain, int version,
                         String environmentId,
@@ -33,11 +38,29 @@ public class EvolvConfig {
         this.environmentId = environmentId;
         this.endpoint = endpoint;
         this.httpClient = httpClient;
+        this.executorService = getCachedThreadPool();
+        this.executorScheduled = getScheduledThreadPool();
         this.executionQueue = new ExecutionQueue();
     }
 
     public static Builder builder(String environmentId, HttpClient httpClient) {
         return new Builder(environmentId, httpClient);
+    }
+
+    private ExecutorService getCachedThreadPool() {
+        return Executors.newCachedThreadPool();
+    }
+
+    private ScheduledExecutorService getScheduledThreadPool() {
+        return Executors.newSingleThreadScheduledExecutor();
+    }
+
+    public ExecutorService getExecutorService() {
+        return executorService;
+    }
+
+    public ScheduledExecutorService getScheduledExecutorService() {
+        return executorScheduled;
     }
 
     String getHttpScheme() {

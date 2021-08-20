@@ -87,35 +87,28 @@ public class EvolvContextImpl implements EvolvContext {
         } else {
             //this.localContext = new HashMap<>();
         }
-
         initialized = true;
 
         JsonElement resolve = resolve();
-        // TODO: 13.07.2021 remove
-//        List<Object> objects = new ArrayList<>();
-//        objects.add(CONTEXT_INITIALIZED);
-//        objects.add(resolve);
-
         JsonObject object = new JsonObject();
         object.addProperty("type", CONTEXT_INITIALIZED);
         object.add("value", resolve);
-
-
+        
         waitForIt.emit(this, CONTEXT_INITIALIZED, object);
     }
 
 
     @Override
     public boolean set(String key, Object value, boolean local) {
+
         //checking incoming type
         JsonElement jsonValue = null;
         if (value instanceof JsonElement) {
             jsonValue = (JsonElement) value;
         } else if (value instanceof String) {
-            // TODO: use a non-depreciated method "JsonParser"
-            JsonParser parser = new JsonParser();
+
             String modifyValue = ((String) value).replaceAll(" ", ".");
-            jsonValue = parser.parse(modifyValue);
+            jsonValue = JsonParser.parseString(modifyValue);
         }
 
         ensureInitialized();
@@ -133,7 +126,7 @@ public class EvolvContextImpl implements EvolvContext {
 
         helper.setKeyToValue(key, jsonValue, context);
 
-        JsonObject updated = this.resolve();
+        JsonObject updated = resolve();
 
         if (before == null) {
 
@@ -156,22 +149,25 @@ public class EvolvContextImpl implements EvolvContext {
             objects.addProperty("local", false);
             objects.add("updated", updated);
 
-
             waitForIt.emit(this, CONTEXT_VALUE_CHANGED, objects);
         }
 
         waitForIt.emit(this, CONTEXT_CHANGED, updated);
         return true;
+
     }
 
     @Override
     public JsonObject resolve() {
         ensureInitialized();
+        JsonObject jsonLocalObject = localContext.deepCopy();
+        JsonObject jsonRemoteObject = remoteContext.deepCopy();
 
-        for (Map.Entry<String, JsonElement> entry : localContext.entrySet()) {
-            remoteContext.add(entry.getKey(),entry.getValue());
+        // TODO: 20.08.2021 need another implementation like a npm deepmerge
+        for (Map.Entry<String, JsonElement> entry : jsonLocalObject.entrySet()) {
+            jsonRemoteObject.add(entry.getKey(),entry.getValue());
         }
-        return remoteContext;
+        return jsonRemoteObject;
     }
 
     private void ensureInitialized() {
