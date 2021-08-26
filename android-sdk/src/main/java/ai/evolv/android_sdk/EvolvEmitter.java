@@ -1,5 +1,6 @@
 package ai.evolv.android_sdk;
 
+import android.telecom.TelecomManager;
 import android.util.Log;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -22,20 +23,20 @@ import okhttp3.RequestBody;
 
 class EvolvEmitter {
 
-    public final int BATCH_SIZE = 25;
     MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-    static int SCHEDULED_EXECUTOR_TIME = 5000;
+    static int SCHEDULED_EXECUTOR_TIME = 3000;
+    static int FIRST_ARRAY_INDEX = 0;
 
-    private String endpoint;
-    private EvolvContext evolvContext;
-    private boolean blockTransmit;
+    private final String endpoint;
+    private final EvolvContext evolvContext;
+    private final boolean blockTransmit;
     private JsonArray messages = new JsonArray();
     private int timer;
-    private EvolvConfig evolvConfig;
-    private EvolvParticipant participant;
-    private DataCache dataCache = new DataCache(50);
+    private final EvolvConfig evolvConfig;
+    private final EvolvParticipant participant;
+    private final DataCache dataCache = new DataCache(50);
 
-    private AtomicBoolean atomicBoolean = new AtomicBoolean(true);
+    private final AtomicBoolean atomicBoolean = new AtomicBoolean(true);
 
     public EvolvEmitter(EvolvConfig evolvConfig, EvolvContext evolvContext, String action, EvolvParticipant participant) {
 
@@ -47,7 +48,10 @@ class EvolvEmitter {
 
     }
 
-    // TODO: 16.07.2021 neet unit test
+    public void setMessages(JsonArray messages) {
+        this.messages = messages;
+    }
+
     boolean send(String url, RequestBody formBody, boolean sync) {
 
         ListenableFuture<String> responseFuture = evolvConfig.getHttpClient().post(url, formBody);
@@ -66,7 +70,6 @@ class EvolvEmitter {
         return false;
     }
 
-    // TODO: 16.07.2021 need unit test
     void emit(String type, JsonObject payload, boolean flush) {
         JsonObject messagesObject = new JsonObject();
         messagesObject.addProperty("type", type);
@@ -81,11 +84,9 @@ class EvolvEmitter {
             transmit();
             return;
         }
-
         transmit();
     }
 
-    // TODO: 16.07.2021 need unit test
     void transmit() {
 
         boolean sync = false;
@@ -119,18 +120,16 @@ class EvolvEmitter {
             if (smallBatch.size() == 0) {
                 return;
             }
+
             dataCache.putEntry(smallBatch);
 
             if (atomicBoolean.get()) {
                 atomicBoolean.set(false);
 
                 ScheduledExecutorService service = evolvConfig.getScheduledExecutorService();
-                service.schedule(new Runnable() {
-                    @Override
-                    public void run() {
-                        sendPreparation(sync);
-                        atomicBoolean.set(true);
-                    }
+                service.schedule(() -> {
+                    sendPreparation(sync);
+                    atomicBoolean.set(true);
                 }, SCHEDULED_EXECUTOR_TIME, TimeUnit.MILLISECONDS);
             }
         }
@@ -146,13 +145,9 @@ class EvolvEmitter {
         Gson gson = new Gson();
         String messages = gson.toJson(msgArray);
         String uid = gson.toJson(participant.getUserId());
-        RequestBody formBody = RequestBody.create(JSON, "{\"uid\": " + uid +
-                ",\"messages\":" + messages + " }");
 
-        Log.d("EvolvEmitter_data", "1: " + "{\"uid\": " + uid +
-                ",\"messages\":" + messages + " }");
-
-        return formBody;
+        return RequestBody.create("{\"uid\": " + uid +
+                ",\"messages\":" + messages + " }", JSON);
     }
 
     RequestBody wrapMessagesEvents(JsonObject msgObject) {
@@ -170,23 +165,13 @@ class EvolvEmitter {
             contaminationReasonString = ",\"contaminationReason\":" + contaminationReason;
         }
 
-        RequestBody formBody = RequestBody.create(JSON, "{"
+        return RequestBody.create("{"
                 + "\"uid\":" + uid
                 + ",\"cid\":" + cid
                 + ",\"eid\":" + eid
                 + ",\"type\":" + type
                 + contaminationReasonString
-                + ",\"timestamp\":" + timestamp + " }");
-
-//        Log.d("EvolvEmitter_events", "1: " + "{" + "\n"
-//                + "\"uid\":" + uid + "\n"
-//                + "\"cid\":" + cid + "\n"
-//                + "\"eid\":" + eid + "\n"
-//                + ",\"type\":" + type + "\n"
-//                + contaminationReasonString + "\n"
-//                + ",\"timestamp\":" + timestamp + " }");
-
-        return formBody;
+                + ",\"timestamp\":" + timestamp + " }", JSON);
     }
 
     private boolean v1Events() {
@@ -212,9 +197,9 @@ class EvolvEmitter {
         }
     }
 
-    private class DataCache {
+    private static class DataCache {
 
-        private JsonArray cacheArray;
+        private final JsonArray cacheArray;
 
         DataCache(int capacity) {
             this.cacheArray = new JsonArray(capacity);
@@ -229,7 +214,17 @@ class EvolvEmitter {
         }
 
         void putEntry(JsonElement element) {
-            cacheArray.add(element);
+            cacheArray.add(getCurrentJsonObject(element));
+        }
+
+        private JsonObject getCurrentJsonObject(JsonElement element) {
+            if (element.isJsonArray()) {
+                JsonArray jsonArray = element.getAsJsonArray();
+                if (jsonArray.size() != 0) {
+                    return jsonArray.get(FIRST_ARRAY_INDEX).getAsJsonObject();
+                }
+            }
+            return new JsonObject();
         }
 
         void clearCacheArray() {
@@ -243,5 +238,4 @@ class EvolvEmitter {
             }
         }
     }
-
 }

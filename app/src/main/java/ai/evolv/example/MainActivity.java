@@ -58,8 +58,8 @@ public class MainActivity extends AppCompatActivity {
         //case 1
         //evolvContext.set("signedin", "yes", false);
         //case 2
-        evolvContext.set("authenticated","false",false);
-        evolvContext.set("device","mobile",false);
+        evolvContext.set("authenticated", "false", false);
+        evolvContext.set("device", "mobile", false);
 //        //case 3
 //        evolvContext.set("Age", "26", false);
 //        evolvContext.set("Sex", "female", false);
@@ -98,22 +98,22 @@ public class MainActivity extends AppCompatActivity {
                 }));
 
 
-        client.subscribeActiveKeys("", new EvolvAction<JsonObject>() {
-            @Override
-            public void apply(JsonObject value) {
-                Log.d("evolv_subscribe_active_", "subscribeActiveKeys : " + value);
-            }
-        });
+        client.subscribeActiveKeys("", (EvolvAction<JsonObject>) value ->
+                Log.d("evolv_subscribe_active_", "subscribeActiveKeys : " + value));
 
-        client.on(CONTEXT_CHANGED, value -> Log.d("evolv_on_invoke", "CONTEXT_CHANGED " + value));
+        client.on(CONTEXT_CHANGED, value ->
+                Log.d("evolv_on_invoke", "CONTEXT_CHANGED " + value));
 
     }
 
     public void pressHome(View view) {
-// test area -->
+        // test area -->
+        JsonObject details = new JsonObject();
+        details.addProperty("reason","error-thrown");
+        details.addProperty("details","testing contamination");
+        client.contaminate(details,false);
 
-
-// TODO: 28.07.2021 commented data   -->
+        // TODO: 28.07.2021 commented data   -->
 
         //////////////////test values//////////////////
         //evolvContext.set("test_key","test_value",false);

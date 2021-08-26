@@ -82,7 +82,6 @@ class EvolvStoreImpl {
     private JsonObject activeVariants = new JsonObject();
     private CopyOnWriteArrayList<String> expLoadedList = new CopyOnWriteArrayList<>();
     private CountDownLatch latch = new CountDownLatch(1);
-    //private Map<String,EvolvCallBack> subscriptions = new LinkedHashMap();
     private Map<EvolvCallBack, Pair<String, EvolvType>> subscriptions = new LinkedHashMap<>();
     private ExecutorService executor;
     private Future<?> future = null;
