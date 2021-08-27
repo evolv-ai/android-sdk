@@ -164,15 +164,6 @@ public class EvolvContextImpl implements EvolvContext {
         JsonObject jsonLocalObject = localContext.deepCopy();
         JsonObject jsonRemoteObject = remoteContext.deepCopy();
 
-        JsonObject extra_i = new JsonObject();
-        extra_i.addProperty("i", "i_Value");
-
-        JsonObject extra_ii = new JsonObject();
-        extra_ii.addProperty("ii", "ii_Value");
-
-        jsonRemoteObject.add("a",extra_i);
-        jsonLocalObject.add("a",extra_ii);
-
         JsonObject mergeResult = deepMerge(jsonRemoteObject,jsonLocalObject);
 
         return mergeResult;
