@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,10 +46,12 @@ class WaitForIt<T> {
         Map<String, List<EvolvInvocation<T>>> handlers = scopedHandlers.get(scope);
         Map<String, T> payloads = scopedPayloads.get(scope);
 
-        List<EvolvInvocation<T>> list = new ArrayList<>();
-        list.add(handler);
+        List<EvolvInvocation<T>> invocations = handlers.get(it);
 
-        handlers.put(it, list);
+        if (invocations == null) invocations = new ArrayList<>();
+        invocations.add(handler);
+
+        handlers.put(it, invocations);
 
         if (payloads.containsKey(it)) {
             handler.invoke(payloads.get(it));
@@ -66,10 +69,12 @@ class WaitForIt<T> {
             return;
         }
 
-        List<EvolvInvocation<T>> list = new ArrayList<>();
-        list.add(handler);
+        List<EvolvInvocation<T>> invocations = handlers.get(it);
 
-        handlers.put(it, list);
+        if (invocations == null) invocations = new ArrayList<>();
+        invocations.add(handler);
+
+        handlers.put(it, invocations);
     }
 
     void emit(Object scope, String it, T payloadList) {

@@ -151,7 +151,7 @@ public class EvolvClientImplTest {
         }));
     }
 
-    private String bodyToString(final RequestBody request){
+    static String bodyToString(final RequestBody request){
         try {
             final RequestBody copy = request;
             final Buffer buffer = new Buffer();

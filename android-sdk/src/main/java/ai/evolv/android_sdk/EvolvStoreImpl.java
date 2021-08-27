@@ -82,7 +82,6 @@ class EvolvStoreImpl {
     private JsonObject activeVariants = new JsonObject();
     private CopyOnWriteArrayList<String> expLoadedList = new CopyOnWriteArrayList<>();
     private CountDownLatch latch = new CountDownLatch(1);
-    //private Map<String,EvolvCallBack> subscriptions = new LinkedHashMap();
     private Map<EvolvCallBack, Pair<String, EvolvType>> subscriptions = new LinkedHashMap<>();
     private ExecutorService executor;
     private Future<?> future = null;
@@ -303,12 +302,13 @@ class EvolvStoreImpl {
                 activeKeys.addProperty(activeKey.getKey(), activeKey.getValue().getAsString());
 
                 if (effectiveGenome != null && effectiveGenome.size() != 0) {
-                  JsonObject value = effectiveGenome.get( "activeGenome_"+ expKeyStates.getKey()).getAsJsonObject();
+                    if (effectiveGenome.has("activeGenome_" + expKeyStates.getKey())) {
+                        JsonObject value = effectiveGenome.get("activeGenome_" + expKeyStates.getKey()).getAsJsonObject();
+                        JsonElement pruned = helper.prune(value, active);
 
-                    JsonElement pruned = helper.prune(value, active);
-
-                    for (String key : pruned.getAsJsonObject().keySet()) {
-                        activeVariants.addProperty("activeVariants_" + key, key.concat(":" + pruned.getAsJsonObject().get(key).hashCode()));
+                        for (String key : pruned.getAsJsonObject().keySet()) {
+                            activeVariants.addProperty("activeVariants_" + key, key.concat(":" + pruned.getAsJsonObject().get(key).hashCode()));
+                        }
                     }
                 }
             }
@@ -411,7 +411,7 @@ class EvolvStoreImpl {
 
                 if (activeGenome.keySet().size() != 0) {
                     activeEids.add(eid);
-                    effectiveGenome.add("activeGenome_" + eid,activeGenome.deepCopy());
+                    effectiveGenome.add("activeGenome_" + eid, activeGenome.deepCopy());
 
                 }
             }
@@ -425,10 +425,10 @@ class EvolvStoreImpl {
     }
 
     void setActiveAndEntryKeyStates(int version,
-                                            EvolvContext evolvContext,
-                                            JsonObject config,
-                                            JsonArray allocations,
-                                            KeyStates configKeyStates) {
+                                    EvolvContext evolvContext,
+                                    JsonObject config,
+                                    JsonArray allocations,
+                                    KeyStates configKeyStates) {
 
         JsonArray results = evaluatePredicates(version, evolvContext, config);
 
@@ -794,7 +794,7 @@ class EvolvStoreImpl {
 
     private void performAction(EvolvType type, String value, EvolvCallBack callBack) {
 
-        executor = executor == null ?  evolvConfig.getExecutorService() : executor;
+        executor = executor == null ? evolvConfig.getExecutorService() : executor;
 
         future = executor.submit(() -> {
             switch (type) {
@@ -865,14 +865,14 @@ class EvolvStoreImpl {
         boolean configOnly = false;
         boolean immediate = false;
 
-        preload(prefixes,configOnly,immediate);
+        preload(prefixes, configOnly, immediate);
     }
 
     // TODO: 07.07.2021 need to test?
     void preload(ArrayList<String> prefixes, boolean configOnly) {
         boolean immediate = false;
 
-        preload(prefixes,configOnly,immediate);
+        preload(prefixes, configOnly, immediate);
     }
 
     // TODO: 07.07.2021 need to test?
@@ -898,9 +898,9 @@ class EvolvStoreImpl {
     JsonElement getValue(String key) {
         for (Map.Entry<String, JsonElement> genomeEntry : effectiveGenome.entrySet()) {
             JsonElement element = helper.getValueForKey(key, genomeEntry.getValue());
-            if(element == null){
+            if (element == null) {
                 continue;
-            }else{
+            } else {
                 return element;
             }
         }

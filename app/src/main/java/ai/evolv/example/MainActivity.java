@@ -56,14 +56,14 @@ public class MainActivity extends AppCompatActivity {
 
         evolvContext = ((EvolvClientImpl) client).getEvolvContext();
         //case 1
-        //evolvContext.set("signedin", "yes", false);
+        evolvContext.set("signedin", "yes", false);
         //case 2
-        evolvContext.set("authenticated","false",false);
-        evolvContext.set("device","mobile",false);
-//        //case 3
-//        evolvContext.set("Age", "26", false);
-//        evolvContext.set("Sex", "female", false);
-//        evolvContext.set("view", "home", false);
+        evolvContext.set("authenticated", "false", false);
+        //evolvContext.set("device", "mobile", false);
+        //case 3
+        evolvContext.set("Age", "26", false);
+        evolvContext.set("Sex", "female", false);
+        evolvContext.set("view", "home", false);
 
         client.subscribeGet("next.layout", "Default Layout", (EvolvAction<JsonElement>) value ->
                 runOnUiThread(() -> {
@@ -97,23 +97,28 @@ public class MainActivity extends AppCompatActivity {
                     textView.setText(value.getAsString());
                 }));
 
+        client.subscribeActiveKeys("", (EvolvAction<JsonObject>) value ->
+                Log.d("evolv_subscribe_active_", "subscribeActiveKeys : " + value));
 
-        client.subscribeActiveKeys("", new EvolvAction<JsonObject>() {
-            @Override
-            public void apply(JsonObject value) {
-                Log.d("evolv_subscribe_active_", "subscribeActiveKeys : " + value);
-            }
-        });
+        client.subscribeActiveKeys("next", (EvolvAction<JsonObject>) value ->
+                Log.d("evolv_subsc_active_1", "subscribeActiveKeys : " + value));
 
-        client.on(CONTEXT_CHANGED, value -> Log.d("evolv_on_invoke", "CONTEXT_CHANGED " + value));
+        client.subscribeGet("next", "default next", (EvolvAction<JsonElement>) value ->
+                runOnUiThread(() -> {
+                    Log.d("evolv_subscribeGet_next", "element: " + value);
+                }));
+
+        client.on(CONTEXT_CHANGED, value ->
+                Log.d("evolv_on_invoke", "CONTEXT_CHANGED " + value));
 
     }
 
     public void pressHome(View view) {
-// test area -->
+        // test area -->
 
+        evolvContext.set("view", "next", false);
 
-// TODO: 28.07.2021 commented data   -->
+        // TODO: 28.07.2021 commented data   -->
 
         //////////////////test values//////////////////
         //evolvContext.set("test_key","test_value",false);
