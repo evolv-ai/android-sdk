@@ -2,6 +2,7 @@ package ai.evolv.android_sdk;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -163,11 +164,39 @@ public class EvolvContextImpl implements EvolvContext {
         JsonObject jsonLocalObject = localContext.deepCopy();
         JsonObject jsonRemoteObject = remoteContext.deepCopy();
 
-        // TODO: 20.08.2021 need another implementation like a npm deepmerge
-        for (Map.Entry<String, JsonElement> entry : jsonLocalObject.entrySet()) {
-            jsonRemoteObject.add(entry.getKey(),entry.getValue());
+        JsonObject extra_i = new JsonObject();
+        extra_i.addProperty("i", "i_Value");
+
+        JsonObject extra_ii = new JsonObject();
+        extra_ii.addProperty("ii", "ii_Value");
+
+        jsonRemoteObject.add("a",extra_i);
+        jsonLocalObject.add("a",extra_ii);
+
+        JsonObject mergeResult = deepMerge(jsonRemoteObject,jsonLocalObject);
+
+        return mergeResult;
+    }
+
+    private JsonObject deepMerge(JsonObject source, JsonObject target) throws JsonIOException {
+        for (String key: source.keySet()) {
+            JsonElement value = source.get(key);
+            if (!target.has(key)) {
+                if(value.isJsonPrimitive()){
+                    target.addProperty(key, value.getAsString());
+                }else{
+                    target.add(key, value);
+                }
+            } else {
+                if (value.isJsonObject()) {
+                    JsonObject valueJson = value.getAsJsonObject();
+                    deepMerge(valueJson, target.get(key).getAsJsonObject());
+                } else {
+                    target.addProperty(key, value.getAsString());
+                }
+            }
         }
-        return jsonRemoteObject;
+        return target;
     }
 
     private void ensureInitialized() {
