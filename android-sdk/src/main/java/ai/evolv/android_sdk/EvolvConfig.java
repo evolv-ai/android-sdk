@@ -21,7 +21,6 @@ public class EvolvConfig {
     private final String environmentId;
     private final String endpoint;
     private final HttpClient httpClient;
-    private final ExecutionQueue executionQueue;
     private final boolean autoConfirm = false;
     private final boolean analytics = true;
     private final boolean bufferEvents = false;
@@ -40,7 +39,6 @@ public class EvolvConfig {
         this.httpClient = httpClient;
         this.executorService = getCachedThreadPool();
         this.executorScheduled = getScheduledThreadPool();
-        this.executionQueue = new ExecutionQueue();
     }
 
     public static Builder builder(String environmentId, HttpClient httpClient) {
@@ -81,10 +79,6 @@ public class EvolvConfig {
 
     HttpClient getHttpClient() {
         return this.httpClient;
-    }
-
-    ExecutionQueue getExecutionQueue() {
-        return this.executionQueue;
     }
 
     public boolean isAutoConfirm() {

@@ -39,7 +39,6 @@ public class EvolvClientImpl implements EvolvClient {
     private EvolvStoreImpl evolvStore;
     private WaitForIt waitForIt;
 
-    private final ExecutionQueue executionQueue;
     private final EvolvParticipant participant;
     private final EvolvConfig evolvConfig;
     private final EvolvEmitter contextBeacon;
@@ -49,7 +48,6 @@ public class EvolvClientImpl implements EvolvClient {
                     EvolvParticipant participant,
                     WaitForIt waitForIt) {
 
-        this.executionQueue = config.getExecutionQueue();
         this.evolvConfig = config;
         this.participant = participant;
         this.waitForIt = waitForIt;
