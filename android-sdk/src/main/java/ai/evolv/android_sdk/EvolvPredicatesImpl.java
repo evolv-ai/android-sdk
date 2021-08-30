@@ -1,20 +1,16 @@
 package ai.evolv.android_sdk;
 
-import android.util.Log;
+import android.os.Build;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 
-import java.net.PasswordAuthentication;
-import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-
-import ai.evolv.android_sdk.exceptions.EvolvKeyError;
+import java.util.regex.Pattern;
 
 class EvolvPredicatesImpl {
 
@@ -169,16 +165,26 @@ class EvolvPredicatesImpl {
         operatorsMap.put("not_contains", (Function<String, String>) (a, b) -> !(a.contains(b)));
         operatorsMap.put("not_defined", (Function<String, String>) (a, b) -> a == null);
         operatorsMap.put("not_equal", (Function<String, String>) (a, b) -> !a.equals(b));
-        // TODO: 24.06.2021 implement
-        operatorsMap.put("not_regex_match", (Function<String, String>) (a, b) -> false);
-        // TODO: 24.06.2021 implement
-        operatorsMap.put("not_regex64_match", (Function<String, String>) (a, b) -> false);
+        operatorsMap.put("not_regex_match", (Function<String, String>) (a, b) -> !Pattern.compile(b).matcher(a).matches());
+        operatorsMap.put("not_regex64_match", (Function<String, String>) (value, b64pattern) -> {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                byte[] decode = Base64.getDecoder().decode(b64pattern);
+                String decodeString = new String(decode);
+                return  !Pattern.compile(value).matcher(decodeString).matches();
+            }
+            return false;
+        });
         operatorsMap.put("not_starts_with", (Function<String, String>) (a, b) -> !a.startsWith(b));
         operatorsMap.put("starts_with", (Function<String, String>) String::startsWith);
-        // TODO: 24.06.2021 implement
-        operatorsMap.put("regex_match", (Function<String, String>) (a, b) -> false);
-        // TODO: 24.06.2021 implement
-        operatorsMap.put("regex64_match", (Function<String, String>) (a, b) -> false);
+        operatorsMap.put("regex_match", (Function<String, String>) (a, b) -> Pattern.compile(b).matcher(a).matches());
+        operatorsMap.put("regex64_match", (Function<String, String>) (value, b64pattern) -> {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                byte[] decode = Base64.getDecoder().decode(b64pattern);
+                String decodeString = new String(decode);
+                return  Pattern.compile(value).matcher(decodeString).matches();
+            }
+            return false;
+        });
 
         return operatorsMap;
     }

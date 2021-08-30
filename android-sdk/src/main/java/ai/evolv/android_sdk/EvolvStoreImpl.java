@@ -251,7 +251,6 @@ class EvolvStoreImpl {
     private void update(boolean configRequest, JsonArray requestedKeys, JsonElement value) {
 
         KeyStates keyStates = configRequest ? configKeyStates : genomeKeyStates;
-        // TODO: 27.05.2021 to figure it out -> requestedKeys.forEach(keyStates.requested.delete.bind(keyStates.requested));
         keyStates.requested.clear();
 
         if (configRequest) {
@@ -266,11 +265,8 @@ class EvolvStoreImpl {
                 updateGenome((JsonArray) value);
             }
         }
-
-        // TODO: 01.06.2021 add
     }
 
-    // TODO: 11.06.2021 need a unit test
     void reevaluateContext() {
 
         if (config.isJsonNull() || config.size() == 0) {
@@ -657,22 +653,13 @@ class EvolvStoreImpl {
         return EMPTY_STRING;
     }
 
-    private void evaluateAllocationPredicates(EvolvContext evolvContext,
-                                              JsonElement allocation,
-                                              JsonElement activeKeyStates) {
-
-        // TODO: 02.06.2021 implement
-    }
-
     JsonArray evaluatePredicates(int version, EvolvContext evolvContext, JsonElement config) {
         JsonArray result = new JsonArray();
 
         if (!config.getAsJsonObject().has("_experiments"))
             if (config.getAsJsonObject().size() == 0 || config.getAsJsonObject().getAsJsonArray("_experiments").size() == 0)
                 return result;
-        // TODO: 23.06.2021 need to create "context merge" between two contexts
-        //JsonElement evaluableContext = evolvContext.resolve();
-        JsonElement evaluableContext = ((EvolvContextImpl) evolvContext).getRemoteContext();
+        JsonElement evaluableContext = evolvContext.resolve();
         Iterator<JsonElement> iterator = config
                 .getAsJsonObject()
                 .get("_experiments")
@@ -685,13 +672,10 @@ class EvolvStoreImpl {
             JsonObject evaluableConfig = exp.deepCopy();
             if (evaluableConfig.has("id")) evaluableConfig.remove("id");
 
-
             JsonObject expResult = new JsonObject();
             JsonObject disabled = new JsonObject();
             JsonObject entry = new JsonObject();
 
-//            expResult.add("disabled", disabled);
-//            expResult.add("entry", entry);
             expResult.add(exp.get("id").getAsString() + "_disabled", disabled);
             expResult.add(exp.get("id").getAsString() + "_entry", entry);
 
@@ -703,7 +687,6 @@ class EvolvStoreImpl {
         return result;
     }
 
-    // TODO: 11.06.2021 need a unit test
     private void evaluateBranch(JsonElement context,
                                 JsonElement config,
                                 String prefix,
@@ -749,7 +732,6 @@ class EvolvStoreImpl {
         return expLoadedList;
     }
 
-    //TODO: 07.07.2021 need to test
     JsonArray activeEntryPoints() {
         JsonArray eids = new JsonArray();
 
@@ -764,26 +746,13 @@ class EvolvStoreImpl {
         return eids;
     }
 
-    //need for testing (unit test)
     public void setGenomes(JsonObject genomes) {
         this.genomes = genomes;
     }
 
-    //need for testing (unit test)
     public void setActiveKeys(JsonObject activeKeys) {
         this.activeKeys = activeKeys;
     }
-    //todo uncomment (callBack testing)
-//    JsonObject getActiveKeys(String prefix) {
-//        JsonObject result = new JsonObject();
-//
-//        for (Map.Entry<String, JsonElement> key : activeKeys.entrySet()) {
-//            if (hasPrefix(key.getValue().getAsString(), prefix)) {
-//                result.addProperty("current_" + key.getKey(), key.getValue().getAsString());
-//            }
-//        }
-//        return result;
-//    }
 
     void subscribe(EvolvType type, String value, EvolvCallBack callBack) {
         Pair<String, EvolvType> pair = new Pair<>(value, type);
@@ -860,7 +829,6 @@ class EvolvStoreImpl {
         return key.startsWith(prefix);
     }
 
-    // TODO: 07.07.2021 need to test?
     void preload(ArrayList<String> prefixes) {
         boolean configOnly = false;
         boolean immediate = false;
@@ -868,14 +836,12 @@ class EvolvStoreImpl {
         preload(prefixes, configOnly, immediate);
     }
 
-    // TODO: 07.07.2021 need to test?
     void preload(ArrayList<String> prefixes, boolean configOnly) {
         boolean immediate = false;
 
         preload(prefixes, configOnly, immediate);
     }
 
-    // TODO: 07.07.2021 need to test?
     void preload(ArrayList<String> prefixes, boolean configOnly, boolean immediate) {
 
         configKeyStates.needed.addAll(prefixes);
@@ -907,12 +873,10 @@ class EvolvStoreImpl {
         return JsonNull.INSTANCE;
     }
 
-    // TODO: 07.07.2021 need to test?
     void clearActiveKeys(String prefix) {
         clearActiveKeysImpl(prefix);
     }
 
-    // TODO: 07.07.2021 need to test?
     void clearActiveKeys() {
         clearActiveKeysImpl();
     }

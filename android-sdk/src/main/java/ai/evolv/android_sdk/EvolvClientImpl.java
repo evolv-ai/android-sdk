@@ -39,7 +39,6 @@ public class EvolvClientImpl implements EvolvClient {
     private EvolvStoreImpl evolvStore;
     private WaitForIt waitForIt;
 
-    private final ExecutionQueue executionQueue;
     private final EvolvParticipant participant;
     private final EvolvConfig evolvConfig;
     private final EvolvEmitter contextBeacon;
@@ -49,7 +48,6 @@ public class EvolvClientImpl implements EvolvClient {
                     EvolvParticipant participant,
                     WaitForIt waitForIt) {
 
-        this.executionQueue = config.getExecutionQueue();
         this.evolvConfig = config;
         this.participant = participant;
         this.waitForIt = waitForIt;
@@ -66,7 +64,6 @@ public class EvolvClientImpl implements EvolvClient {
         return evolvContext;
     }
 
-    // TODO: 07.07.2021 need to test
     @Override
     public void initialize(String uid, JsonObject remoteContext, JsonObject localContext) {
 
@@ -85,11 +82,8 @@ public class EvolvClientImpl implements EvolvClient {
                 evolvKeyError.printStackTrace();
             }
         }
-
                 evolvContext.initialize(uid, remoteContext, localContext);
                 evolvStore.initialize(evolvContext);
-
-                // TODO: 31.05.2021 add
 
                 if (evolvConfig.isAnalytics()) {
 

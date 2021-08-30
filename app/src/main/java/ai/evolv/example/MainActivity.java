@@ -40,26 +40,22 @@ public class MainActivity extends AppCompatActivity {
 
         // build config with custom timeout and custom allocation store
         // set client to use sandbox environment
-        EvolvConfig config = EvolvConfig.builder("dbcf75051d", httpClient) //8b50696b6c
+        EvolvConfig config = EvolvConfig.builder("dbcf75051d", httpClient)
                 .build();
 
         // initialize the client with a stored user
         client = EvolvClientFactory.init(
                 config,
                 new EvolvParticipant("79211876_16178796481581112"));
-        //UserId"79211876_16178796481581112223331" - //"Default layout";"click here"
-        //UserId("79211876_16178796481581112") - //"Layout 1";"click here"
-        //UserId("79211876_16178796481581112223337") - //"Default layout"; "click here now!"
-        //UserId("79211876_16178796481581112223339") - //"Default layout"; "best button"
 
         setContentView(R.layout.layout_default);
 
         evolvContext = ((EvolvClientImpl) client).getEvolvContext();
         //case 1
-        evolvContext.set("signedin", "yes", false);
+        //evolvContext.set("signedin", "yes", false);
         //case 2
         evolvContext.set("authenticated", "false", false);
-        //evolvContext.set("device", "mobile", false);
+        evolvContext.set("device", "mobile", false);
         //case 3
         evolvContext.set("Age", "26", false);
         evolvContext.set("Sex", "female", false);
@@ -72,27 +68,20 @@ public class MainActivity extends AppCompatActivity {
                             setContentView(R.layout.layout_one);
                             ConstraintLayout constraintLayout_one = findViewById(R.id.constraintlayout_one);
                             constraintLayout_one.setBackgroundColor(Color.GREEN);
-                            Log.d("evolv_subscribeGet_next", "element: " + value);
-
                             break;
                         case "Default Layout":
                             setContentView(R.layout.layout_default);
                             ConstraintLayout constraintLayout_default = findViewById(R.id.constraintlayout_default);
                             constraintLayout_default.setBackgroundColor(Color.MAGENTA);
-                            Log.d("evolv_subscribeGet_next", "element: " + value);
-
                             break;
                         default:
                             setContentView(R.layout.layout_default);
-                            Log.d("evolv_subscribeGet_next", "element: " + value);
-
                             break;
                     }
                 }));
 
         client.subscribeGet("home.cta_text", "default text", (EvolvAction<JsonElement>) value ->
                 runOnUiThread(() -> {
-                    Log.d("evolv_subscribeGet_home", "element: " + value);
                     TextView textView = findViewById(R.id.homeButton);
                     textView.setText(value.getAsString());
                 }));
@@ -104,9 +93,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("evolv_subsc_active_1", "subscribeActiveKeys : " + value));
 
         client.subscribeGet("next", "default next", (EvolvAction<JsonElement>) value ->
-                runOnUiThread(() -> {
-                    Log.d("evolv_subscribeGet_next", "element: " + value);
-                }));
+                runOnUiThread(() -> Log.d("evolv_subscribeGet_next", "element: " + value)));
 
         client.on(CONTEXT_CHANGED, value ->
                 Log.d("evolv_on_invoke", "CONTEXT_CHANGED " + value));
@@ -114,77 +101,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void pressHome(View view) {
-        // test area -->
-
         evolvContext.set("view", "next", false);
-
-        // TODO: 28.07.2021 commented data   -->
-
-        //////////////////test values//////////////////
-        //evolvContext.set("test_key","test_value",false);
-
-        //////////////////on (client)//////////////////
-        //client.on(CONTEXT_CHANGED, value -> Log.d("evolv_on_invoke", "CONTEXT_CHANGED "));
-        //////////////////remove (context)//////////////////
-        //evolvContext.remove("Age");
-        //evolvContext.remove("Sex");
-
-        //////////////////set (context)//////////////////
-        //evolvContext.set("Age", "26", false);
-        //evolvContext.set("view", "home", false);
-        //evolvContext.set("view", "next", false);
-        //evolvContext.set("signedin","yes",false);
-
-        //////////////////confirm (client)//////////////////
-        //client.confirm();
-
-        //////////////////contaminate (client)//////////////////
-        //JsonObject details = new JsonObject();
-        //details.addProperty("reason","error-thrown");
-        //details.addProperty("details","testing contamination");
-        //client.contaminate(details,false);
-
-        //////////////////getActiveKeys (client)//////////////////
-        //JsonObject activeKeys = client.getActiveKeys();
-        //Log.d("evolv_activeKeys", "activeKeys: " + activeKeys.toString());
-
-        //////////////////get (client)//////////////////
-        //JsonElement getValue = client.get("home");
-        //Log.d("evolv_getvalue", "value: " + getValue.toString());
-
-        //////////////////get (context)//////////////////
-        //JsonElement element = evolvContext.get("experiments.allocations");
-        //Log.d("evolv_context_get", "GET: " + element);
-
-        //////////////////contains (context)//////////////////
-        //boolean containValue = evolvContext.contains("Age");
-        //Log.d("evolv_containValue", "GET: " + containValue);
-
-        //////////////////isActive (client)//////////////////
-        //boolean isActive = client.isActive("home");
-
-        //////////////////subscribe (client)//////////////////
-        //client.subscribeIsActive("next", new EvolvAction<Boolean>() {
-        //    @Override
-        //    public void apply(Boolean value) {
-        //        Log.d("evolv_subscribe_Active", "subscribeActiveKeys : " + value);
-        //    }
-        //});
-
-        //client.subscribeActiveKeys("", new EvolvAction<JsonObject>() {
-        //    @Override
-        //    public void apply(JsonObject value) {
-        //        Log.d("evolv_subscribe_home", "subscribeActiveKeys : " + value);
-        //    }
-        //});
-
-        //client.subscribeActiveKeys("button_color", new EvolvAction<JsonObject>() {
-        //    @Override
-        //    public void apply(JsonObject value) {
-        //        Log.d("evolv_subscribe_btn", "subscribeActiveKeys (prefix): " + value);
-        //    }
-        //});
-
-// test area <--
     }
 }

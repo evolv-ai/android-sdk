@@ -25,39 +25,15 @@ class Allocator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Allocator.class);
 
-
-    enum AllocationStatus {
-        FETCHING, RETRIEVED, FAILED
-    }
-
-    enum ConfigurationStatus {
-        FETCHING, RETRIEVED, FAILED
-    }
-
-    private final ExecutionQueue executionQueue;
     private final EvolvConfig config;
     private final EvolvParticipant participant;
     private final HttpClient httpClient;
 
-    private boolean confirmationSandbagged = false;
-    private boolean contaminationSandbagged = false;
-
-    private AllocationStatus allocationStatus;
-    private ConfigurationStatus configurationStatus;
-
     Allocator(EvolvConfig config, EvolvParticipant participant) {
-        this.executionQueue = config.getExecutionQueue();
         this.config = config;
         this.participant = participant;
         this.httpClient = config.getHttpClient();
-        this.allocationStatus = AllocationStatus.FETCHING;
 
-    }
-
-
-
-    AllocationStatus getAllocationStatus() {
-        return allocationStatus;
     }
 
     String createAllocationsUrl() {
@@ -82,11 +58,6 @@ class Allocator {
 
         ListenableFuture<String> responseFuture = httpClient.post(createAllocationsUrl(), formBody);
         return responseFuture;
-    }
-
-
-    static boolean allocationsNotEmpty(JsonArray allocations) {
-        return allocations != null && allocations.size() > 0;
     }
 
     ListenableFuture<String> fetchConfiguration() {
