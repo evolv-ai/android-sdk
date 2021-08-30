@@ -98,9 +98,6 @@ public class UtilityHelper {
                 }
             }
         }
-
-        // TODO: 05.07.2021 add
-        //reattributePredicatedValues(pruned, active);
         return pruned;
     }
 

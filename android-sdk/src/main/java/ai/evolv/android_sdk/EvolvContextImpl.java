@@ -36,7 +36,7 @@ public class EvolvContextImpl implements EvolvContext {
     private String uid;
     private JsonObject remoteContext = new JsonObject();
     private JsonObject localContext = new JsonObject();
-    private UtilityHelper helper = new UtilityHelper();
+    private final UtilityHelper helper = new UtilityHelper();
     private boolean initialized = false;
     private EvolvConfig evolvConfig;
     private EvolvStoreImpl evolvStore;
@@ -74,20 +74,10 @@ public class EvolvContextImpl implements EvolvContext {
         }
 
         this.uid = uid;
-        if (remoteContext != null) {
-            Class genericRemoteContextClass = remoteContext.getClass();
-            // TODO: 01.06.2021 redo
-            //this.remoteContext = helper.deepCopy(remoteContext, genericRemoteContextClass);
-        } else {
-            //this.remoteContext = new HashMap<>();
-        }
-        if (localContext != null) {
-            Class genericLocalContextClass = localContext.getClass();
-            // TODO: 01.06.2021 redo
-            //this.localContext = helper.deepCopy(localContext, genericLocalContextClass);
-        } else {
-            //this.localContext = new HashMap<>();
-        }
+
+        this.remoteContext = remoteContext != null ? remoteContext.deepCopy() : new JsonObject();
+        this.localContext = localContext != null ? localContext.deepCopy() : new JsonObject();
+
         initialized = true;
 
         JsonElement resolve = resolve();
@@ -102,7 +92,6 @@ public class EvolvContextImpl implements EvolvContext {
     @Override
     public boolean set(String key, Object value, boolean local) {
 
-        //checking incoming type
         JsonElement jsonValue = null;
         if (value instanceof JsonElement) {
             jsonValue = (JsonElement) value;
@@ -200,7 +189,6 @@ public class EvolvContextImpl implements EvolvContext {
         }
     }
 
-    // TODO: 04.08.2021 logic is changed need new test
     @Override
     public JsonElement get(String key) {
         ensureInitialized();
@@ -214,7 +202,6 @@ public class EvolvContextImpl implements EvolvContext {
         }
     }
 
-    // TODO: 27.07.2021 need to test!
     @Override
     public boolean pushToArray(String key, String value, boolean local) {
         int limit = DEFAULT_QUEUE_LIMIT;
@@ -256,7 +243,6 @@ public class EvolvContextImpl implements EvolvContext {
         return remoteContext.has(key) || localContext.has(key);
     }
 
-    // TODO: 26.07.2021 need to test!
     @Override
     public void update(JsonObject update, boolean local) {
         ensureInitialized();
@@ -344,7 +330,6 @@ public class EvolvContextImpl implements EvolvContext {
                 }
             }
         }
-
         return EMPTY_STRING;
     }
 
@@ -352,7 +337,6 @@ public class EvolvContextImpl implements EvolvContext {
             || key.equals("_values")
             || key.equals("_initializers");
 
-    // TODO: 27.07.2021 need to test!
     @Override
     public boolean remove(String key) {
         ensureInitialized();
@@ -378,9 +362,7 @@ public class EvolvContextImpl implements EvolvContext {
             waitForIt.emit(this, CONTEXT_VALUE_REMOVED, objectValueRemoved);
             waitForIt.emit(this, CONTEXT_CHANGED, objectContextChanged);
         }
-
         return removed;
-
     }
 
     private boolean removeValueForKey(String key, JsonObject map) {
@@ -405,5 +387,4 @@ public class EvolvContextImpl implements EvolvContext {
         }
         return removed;
     }
-
 }

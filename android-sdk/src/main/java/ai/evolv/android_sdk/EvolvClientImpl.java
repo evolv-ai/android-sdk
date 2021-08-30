@@ -66,7 +66,6 @@ public class EvolvClientImpl implements EvolvClient {
         return evolvContext;
     }
 
-    // TODO: 07.07.2021 need to test
     @Override
     public void initialize(String uid, JsonObject remoteContext, JsonObject localContext) {
 
@@ -85,11 +84,8 @@ public class EvolvClientImpl implements EvolvClient {
                 evolvKeyError.printStackTrace();
             }
         }
-
                 evolvContext.initialize(uid, remoteContext, localContext);
                 evolvStore.initialize(evolvContext);
-
-                // TODO: 31.05.2021 add
 
                 if (evolvConfig.isAnalytics()) {
 

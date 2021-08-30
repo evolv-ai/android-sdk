@@ -1,14 +1,13 @@
 package ai.evolv.android_sdk;
 
-import com.google.gson.JsonArray;
+
 
 import java.util.HashSet;
 import java.util.Set;
 
 import ai.evolv.android_sdk.evolvinterface.EvolvAction;
 import ai.evolv.android_sdk.evolvinterface.EvolvAllocationStore;
-import ai.evolv.android_sdk.exceptions.EvolvKeyError;
-import ai.evolv.android_sdk.generics.GenericClass;
+
 
 class Execution<T> {
 
@@ -31,10 +30,6 @@ class Execution<T> {
 
     String getKey() {
         return key;
-    }
-
-    void executeWithAllocation(JsonArray rawAllocations) throws EvolvKeyError {
-        // TODO: 03.06.2021 implement
     }
 
     void executeWithDefault() {
